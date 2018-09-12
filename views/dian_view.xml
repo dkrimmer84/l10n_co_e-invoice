@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+
+    <record id="dian_document_tree_view" model="ir.ui.view">
+        <field name="name">Lista de Documentos DIAN</field>
+        <field name="model">dian.document</field>
+        <field name="arch" type="xml">
+            <tree create='false' edit='false' delete='false' string="Documentos DIAN" colors="red:state=='error';red:state=='rechazado';green:state=='exitoso';blue:state=='por_validar'">
+                <field name="document_id"/>
+                <field name="document_type"/>
+                <field name="date_document"/>
+                <field name="customer_name"/>
+                <field name="dian_code"/>
+                <field name="date_document_dian"/>
+                <field name="last_shipping"/>
+                <field name="date_email_send"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="dian_document_form_view" model="ir.ui.view">
+        <field name="name">Documento DIAN</field>
+        <field name="model">dian.document</field>
+        <field name="arch" type="xml">
+            <form create='false' delete='false' edit='false'>
+                <header>
+                    <field name="resend" invisible="True"/>
+                    <button name="generate_new_dian_document" string="Autorizar Reenvio" type="object" class="oe_highlight" attrs="{'invisible': [('resend', '=', False)]}" confirm="Desea autorizar un nuevo envio?"/>  
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <body>
+                    <group>
+                        <group>
+                            <field name="document_id" options="{'no_open': True, 'no_create': True}"/>
+                            <field name="document_type"/>
+                            <field name="date_document"/>
+                            <field name="customer_name"/>
+                            <field name="customer_email"/>
+                            <field name="date_email_send"/>
+                            <field name="date_email_acknowledgment"/>
+                        </group>
+                        <group>
+                            <field name="dian_code"/>
+                            <field name="xml_file_name"/>
+                            <field name="date_document_dian"/>
+                            <field name="shipping_response"/>
+                            <field name="date_request_dian"/>
+                            <field name="response_document_dian"/>
+                            <field name="zip_file_name"/>
+                            <field name="cufe"/>
+                        </group>
+                        <field name="response_message_dian"/>
+                    </group>
+                </body>
+            </form>
+        </field>
+    </record>
+
+
+    <record id="dian_document_search_view" model="ir.ui.view">
+        <field name="name">Filtrar Documentos DIAN</field>
+        <field name="model">dian.document</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="document_id"/>
+                <field name="dian_code"/>
+                <field name="date_document_dian"/>
+                <filter name="filter_por_notificar" string="Por notificar" domain="[('state','=','por_notificar')]"/>
+                <filter name="filter_error" string="Error" domain="[('state','=','error')]"/>
+                <filter name="filter_por_validar" string="Por validar" domain="[('state','=','por_validar')]"/>
+                <filter name="filter_exitoso" string="Exitoso" domain="[('state','=','exitoso')]"/>
+                <filter name="filter_rechazado" string="Rechazado" domain="[('state','=','rechazado')]"/>
+                <separator/>
+                <filter name="filter_factura" string="Factura" domain="[('document_type','=','f')]"/>
+                <filter name="filter_nc" string="Nota/Credito" domain="[('document_type','=','c')]"/>
+                <filter name="filter_nd" string="Nota/Debito" domain="[('document_type','=','d')]"/>
+                <separator/>
+                <filter name="filter_last_shipping" string="solo envios actuales" domain="[('last_shipping','=',True)]"/>
+                <separator/>
+                <filter name="group_state" string="Por status" context="{'group_by' : 'state'}"/>
+                <filter name="group_document_type" string="Por tipo documento" context="{'group_by' : 'document_type'}"/>
+            </search>
+        </field>
+    </record>
+
+
+    <act_window id="dian_document_action_view"
+                name="Documentos DIAN"
+                res_model="dian.document"
+                view_type="form"
+                view_mode="tree,form"
+                context="{'search_default_filter_por_validar' : 1, 'search_default_filter_por_notificar' : 1}"
+    />
+
+
+    <menuitem   id="dian_document_menu"
+                name="Documentos DIAN"
+                action="dian_document_action_view"
+                parent="account.menu_finance_receivables"
+                sequence="99"
+    />
+
+</openerp>
