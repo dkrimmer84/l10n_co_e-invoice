@@ -51,6 +51,7 @@
                             <field name="cufe"/>
                         </group>
                         <field name="response_message_dian"/>
+                        <field name="xml_document"/>
                     </group>
                 </body>
             </form>
@@ -100,5 +101,29 @@
                 parent="account.menu_finance_receivables"
                 sequence="99"
     />
+
+
+    <record id="send_pending_dian_cron" model="ir.cron">
+        <field name="name">Enviar documentos al DIAN</field>
+        <field name="model">dian.document</field>
+        <field name="function">send_pending_dian</field>
+        <field name="args">()</field>
+        <field name="interval_type">hours</field>
+        <field name="interval_number">1</field>
+        <field name="numbercall">-1</field>
+        <field name="active">False</field>
+    </record>
+
+
+    <record id="request_validating_dian_cron" model="ir.cron">
+        <field name="name">Solicitar validacion de documentos enviados al DIAN</field>
+        <field name="model">dian.document</field>
+        <field name="function">request_validating_dian</field>
+        <field name="args">()</field>
+        <field name="interval_type">hours</field>
+        <field name="interval_number">1</field>
+        <field name="numbercall">-1</field>
+        <field name="active">False</field>
+    </record>
 
 </openerp>
