@@ -10,5 +10,5 @@
     'depends': [
         'account', 'l10n_co_tax_extension',
     ],
-    'data': ['views/dian_view.xml','views/company_view.xml','views/invoice_view.xml','views/sequence_view.xml']
+    'data': ['views/dian_view.xml','views/company_view.xml','views/invoice_view.xml','views/sequence_view.xml','views/report_dian_document.xml']
 }
