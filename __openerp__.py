@@ -11,7 +11,7 @@
         'account', 'l10n_co_tax_extension',
     ],
     'data': [
-        'views/report_dian_document.xml'
+        'views/report_dian_document.xml',
         'views/dian_view.xml',
         'views/company_view.xml',
         'views/invoice_view.xml',
