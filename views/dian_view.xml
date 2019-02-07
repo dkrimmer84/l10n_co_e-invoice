@@ -5,7 +5,7 @@
         <field name="name">Lista de Documentos DIAN</field>
         <field name="model">dian.document</field>
         <field name="arch" type="xml">
-            <tree create='false' edit='false' delete='false' string="Documentos DIAN" colors="red:state=='error';red:state=='rechazado';green:state=='exitoso';blue:state=='por_validar'">
+            <tree  string="Documentos DIAN" colors="red:state=='error';red:state=='rechazado';green:state=='exitoso';blue:state=='por_validar'">
                 <field name="document_id"/>
                 <field name="document_type"/>
                 <field name="date_document"/>
@@ -23,7 +23,7 @@
         <field name="name">Documento DIAN</field>
         <field name="model">dian.document</field>
         <field name="arch" type="xml">
-            <form create='false' delete='false' edit='false'>
+            <form  edit='false'>
                 <header>
                     <field name="resend" invisible="True"/>
                     <button name="generate_new_dian_document" string="Autorizar Reenvio" type="object" class="oe_highlight" attrs="{'invisible': [('resend', '=', False)]}" confirm="Desea autorizar un nuevo envio?"/>  
