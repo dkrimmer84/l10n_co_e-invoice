@@ -16,8 +16,9 @@
                         <field name="serial_number"/>
                         <field name="software_identification_code"/>
                         <field name="software_pin"/>
+                        <field name="password_environment"/>
                         <field name="seed_code"/>
-                        <field name="document_repository" />
+                        <field name="document_repository"/>
                     </group>
                 </page>
             </xpath>
