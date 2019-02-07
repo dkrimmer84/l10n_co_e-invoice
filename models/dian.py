@@ -474,7 +474,7 @@ class DianDocument(models.Model):
         dian_constants['NitSinDV'] = partner.xidentification 
         # Falta
         password = 'Zhx7KbK4ND'
-        dian_constants['CertDigestDigestValue'] = self._generate_CertDigestDigestValue(company.digital_certificate) #Falta se presume que es el certificado publico convertido a sha256 base64
+        dian_constants['CertDigestDigestValue'] = self._generate_CertDigestDigestValue(company.digital_certificate, password, dian_constants['document_repository']) #Falta se presume que es el certificado publico convertido a sha256 base64
         #dian_constants['CertDigestDigestValue'] = 'bVfreWgLblq91Pk6GIwMdylAOqvnVhZV5DeQoDqjqmg='
         dian_constants['IssuerName'] = company.issuer_name                                              # Nombre del proveedor del certificado
         dian_constants['SerialNumber'] = company.serial_number                                          # Serial del certificado
@@ -1279,10 +1279,9 @@ class DianDocument(models.Model):
 
 
     @api.multi
-    def _generate_CertDigestDigestValue(self, digital_certificate):
-        #Falta
-        password = 'Zhx7KbK4ND'
-        archivo_key = '/home/odoo/Instancias/DocumentosFE/Certificado.p12'
+    def _generate_CertDigestDigestValue(self, digital_certificate, password, document_repository):
+        #Falta  
+        archivo_key = document_repository + '/Certificado.p12'
         key = crypto.load_pkcs12(open(archivo_key, 'rb').read(), password)  
         certificate = hashlib.sha256(crypto.dump_certificate(crypto.FILETYPE_ASN1, key.get_certificate()))
         CertDigestDigestValue = base64.b64encode(certificate.digest())
