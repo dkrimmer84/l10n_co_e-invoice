@@ -19,32 +19,32 @@ from openerp.tools.translate import _
 try:
     import pyqrcode
 except ImportError:
-    _logger.warning('Cannot import pyqrcode library ***********************')
+    _logger.warning('Cannot import pyqrcode library')
 
 try:
     import png
 except ImportError:
-    _logger.warning('Cannot import png library ***********************')
+    _logger.warning('Cannot import png library')
 
 try:
     import hashlib
 except ImportError:
-    _logger.warning('Cannot import hashlib library ***********************')
+    _logger.warning('Cannot import hashlib library')
 
 try:
     import base64
 except ImportError:
-    _logger.warning('Cannot import base64 library ***********************')
+    _logger.warning('Cannot import base64 library')
 
 try:
     import textwrap
 except:
-    _logger.warning("no se ha cargado textwrap ***********************")
+    _logger.warning("no se ha cargado textwrap")
 
 try:
     import gzip
 except:
-    _logger.warning("no se ha cargado gzip ***********************")
+    _logger.warning("no se ha cargado gzip")
 
 import zipfile
 
@@ -543,11 +543,12 @@ class DianDocument(models.Model):
 
 
     def _replace_character_especial(self, constant):
-        constant = constant.replace('&','&amp;')
-        constant = constant.replace('<','&lt;')
-        constant = constant.replace('>','&gt;')
-        constant = constant.replace('"','&quot;')
-        constant = constant.replace("'",'&apos;')
+        if constant:
+            constant = constant.replace('&','&amp;')
+            constant = constant.replace('<','&lt;')
+            constant = constant.replace('>','&gt;')
+            constant = constant.replace('"','&quot;')
+            constant = constant.replace("'",'&apos;')
         return constant
 
 
