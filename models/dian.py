@@ -1401,12 +1401,14 @@ class DianDocument(models.Model):
 
     def _generate_zip_content(self, FileNameXML, FileNameZIP, data_xml_document, document_repository):
         # Almacena archvio XML
-        xml_file = FileNameXML
+        #xml_file = FileNameXML
+        xml_file = document_repository +'/' + FileNameXML
         f = open (xml_file,'w')
         f.write(data_xml_document)
         f.close()
         # Comprime archvio XML
-        zip_file = FileNameZIP
+        zip_file = document_repository + '/' + FileNameZIP
+        #zip_file = FileNameZIP
         zf = zipfile.ZipFile(zip_file, mode="w")
         try:
             zf.write(xml_file, compress_type=compression)
