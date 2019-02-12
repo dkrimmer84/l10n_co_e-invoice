@@ -19,32 +19,32 @@ from openerp.tools.translate import _
 try:
     import pyqrcode
 except ImportError:
-    _logger.warning('Cannot import pyqrcode library')
+    _logger.warning('Cannot import pyqrcode library ***********************')
 
 try:
     import png
 except ImportError:
-    _logger.warning('Cannot import png library')
+    _logger.warning('Cannot import png library ***********************')
 
 try:
     import hashlib
 except ImportError:
-    _logger.warning('Cannot import hashlib library')
+    _logger.warning('Cannot import hashlib library ***********************')
 
 try:
     import base64
 except ImportError:
-    _logger.warning('Cannot import base64 library')
+    _logger.warning('Cannot import base64 library ***********************')
 
 try:
     import textwrap
 except:
-    _logger.warning("no se ha cargado textwrap")
+    _logger.warning("no se ha cargado textwrap ***********************")
 
 try:
     import gzip
 except:
-    _logger.warning("no se ha cargado gzip")
+    _logger.warning("no se ha cargado gzip ***********************")
 
 import zipfile
 
@@ -157,7 +157,8 @@ class DianDocument(models.Model):
     def _get_resolution_dian(self):
         # Falta preguntar si con un mismo número de resolución DIAN se puede generar consecutivos de facturas
         # notas de débto y crédito. 
-        rec_dian_sequence = self.env['ir.sequence'].search([('use_dian_control', '=', True),('active', '=', True),('sequence_dian_type', '=', 'invoice_computer_generated')])
+        dian_sequence = int(self.env.user.partner_id.company_id.in_use_dian_sequence)
+        rec_dian_sequence = self.env['ir.sequence'].search([('id', '=', dian_sequence),('use_dian_control', '=', True),('active', '=', True)])
         if not rec_dian_sequence:
             raise ValidationError('No se pueden generar documentos para la DIAN porque no hay secuenciador DIAN activo.')
         rec_active_resolution = self.env['ir.sequence.dian_resolution'].search([('sequence_id', '=', rec_dian_sequence.id),('active_resolution', '=', True)])

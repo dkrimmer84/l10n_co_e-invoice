@@ -23,7 +23,7 @@
         <field name="name">Documento DIAN</field>
         <field name="model">dian.document</field>
         <field name="arch" type="xml">
-            <form  edit='false'>
+            <form create='false' delete='false' edit='false'>
                 <header>
                     <field name="resend" invisible="True"/>
                     <button name="generate_new_dian_document" string="Autorizar Reenvio" type="object" class="oe_highlight" attrs="{'invisible': [('resend', '=', False)]}" confirm="Desea autorizar un nuevo envio?"/>  

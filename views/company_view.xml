@@ -19,6 +19,7 @@
                         <field name="password_environment"/>
                         <field name="seed_code"/>
                         <field name="document_repository"/>
+                        <field name="in_use_dian_sequence"/>
                     </group>
                 </page>
             </xpath>
