@@ -19,32 +19,32 @@ from openerp.tools.translate import _
 try:
     import pyqrcode
 except ImportError:
-    _logger.warning('Cannot import pyqrcode library')
+    _logger.warning('Cannot import pyqrcode library ***********************')
 
 try:
     import png
 except ImportError:
-    _logger.warning('Cannot import png library')
+    _logger.warning('Cannot import png library ***********************')
 
 try:
     import hashlib
 except ImportError:
-    _logger.warning('Cannot import hashlib library')
+    _logger.warning('Cannot import hashlib library ***********************')
 
 try:
     import base64
 except ImportError:
-    _logger.warning('Cannot import base64 library')
+    _logger.warning('Cannot import base64 library ***********************')
 
 try:
     import textwrap
 except:
-    _logger.warning("no se ha cargado textwrap")
+    _logger.warning("no se ha cargado textwrap ***********************")
 
 try:
     import gzip
 except:
-    _logger.warning("no se ha cargado gzip")
+    _logger.warning("no se ha cargado gzip ***********************")
 
 import zipfile
 
@@ -141,6 +141,8 @@ class DianDocument(models.Model):
     customer_email = fields.Char(string="Email cliente", readonly=True, related='document_id.partner_id.email')
     document_type = fields.Selection([('f','Factura'), ('c','Nota/Credito'), ('d','Nota/Debito')], string="Tipo de documento", readonly=True)
     resend = fields.Boolean(string="Autorizar reenvio?", default=False)
+    email_response = fields.Selection([('accepted','ACEPTADA'),('rejected','RECHAZADA'),('pending','PENDIENTE')], string='Decisión del cliente', required=True, default='pending', readonly=True)
+    email_reject_reason = fields.Char(string='Motivo del rechazo', readonly=True)
 
 
     @api.multi
@@ -157,7 +159,8 @@ class DianDocument(models.Model):
     def _get_resolution_dian(self):
         # Falta preguntar si con un mismo número de resolución DIAN se puede generar consecutivos de facturas
         # notas de débto y crédito. 
-        rec_dian_sequence = self.env['ir.sequence'].search([('use_dian_control', '=', True),('active', '=', True),('sequence_dian_type', '=', 'invoice_computer_generated')])
+        dian_sequence = int(self.env.user.partner_id.company_id.in_use_dian_sequence)
+        rec_dian_sequence = self.env['ir.sequence'].search([('id', '=', dian_sequence),('use_dian_control', '=', True),('active', '=', True)])
         if not rec_dian_sequence:
             raise ValidationError('No se pueden generar documentos para la DIAN porque no hay secuenciador DIAN activo.')
         rec_active_resolution = self.env['ir.sequence.dian_resolution'].search([('sequence_id', '=', rec_dian_sequence.id),('active_resolution', '=', True)])
@@ -435,7 +438,7 @@ class DianDocument(models.Model):
         Signedinfo = etree.tostring(Signedinfo[0])
         xmlns = '<ds:SignedInfo xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:clm54217="urn:un:unece:uncefact:codelist:specification:54217:2001" xmlns:clm66411="urn:un:unece:uncefact:codelist:specification:66411:2001" xmlns:clmIANAMIMEMediaType="urn:un:unece:uncefact:codelist:specification:IANAMIMEMediaType:2003" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:fe="http://www.dian.gov.co/contratos/facturaelectronica/v1" xmlns:qdt="urn:oasis:names:specification:ubl:schema:xsd:QualifiedDatatypes-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:udt="urn:un:unece:uncefact:data:specification:UnqualifiedDataTypesSchemaModule:2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
         Signedinfo = Signedinfo.replace('<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">', '%s' % xmlns )
-        data_xml_SignatureValue = self._generate_SignatureValue(dian_constants['document_repository'], Signedinfo)
+        data_xml_SignatureValue = self._generate_SignatureValue(dian_constants['document_repository'], dian_constants['CertificateKey'], Signedinfo)
         SignatureValue = etree.fromstring(data_xml_signature)
         SignatureValue = etree.tostring(SignatureValue[1])
         data_xml_signature = data_xml_signature.replace('-sigvalue"/>','-sigvalue">%s</ds:SignatureValue>' % data_xml_SignatureValue, 1)
@@ -473,8 +476,9 @@ class DianDocument(models.Model):
         dian_constants['Certificate'] = company.digital_certificate
         dian_constants['NitSinDV'] = partner.xidentification 
         # Falta
-        password = 'Zhx7KbK4ND'
-        dian_constants['CertDigestDigestValue'] = self._generate_CertDigestDigestValue(company.digital_certificate, password, dian_constants['document_repository']) #Falta se presume que es el certificado publico convertido a sha256 base64
+        dian_constants['CertificateKey'] = company.certificate_key 
+        #password = 'Zhx7KbK4ND'
+        dian_constants['CertDigestDigestValue'] = self._generate_CertDigestDigestValue(company.digital_certificate, dian_constants['CertificateKey'], dian_constants['document_repository']) #Falta se presume que es el certificado publico convertido a sha256 base64
         #dian_constants['CertDigestDigestValue'] = 'bVfreWgLblq91Pk6GIwMdylAOqvnVhZV5DeQoDqjqmg='
         dian_constants['IssuerName'] = company.issuer_name                                              # Nombre del proveedor del certificado
         dian_constants['SerialNumber'] = company.serial_number                                          # Serial del certificado
@@ -1290,11 +1294,11 @@ class DianDocument(models.Model):
 
 
     @api.multi
-    def _generate_SignatureValue(self, document_repository, data_xml_SignedInfo_generate):
+    def _generate_SignatureValue(self, document_repository, password, data_xml_SignedInfo_generate):
         data_xml_SignatureValue_c14n = etree.tostring(etree.fromstring(data_xml_SignedInfo_generate), method="c14n")
         archivo_key = document_repository+'/Certificado.p12'
         # Falta
-        password = 'Zhx7KbK4ND'
+        #password = 'Zhx7KbK4ND'
         try:
             key = crypto.load_pkcs12(open(archivo_key, 'rb').read(), password)  
         except Exception as ex:

@@ -14,6 +14,7 @@
                 <field name="date_document_dian"/>
                 <field name="last_shipping"/>
                 <field name="date_email_send"/>
+                <field name="email_response"/>
                 <field name="state"/>
             </tree>
         </field>
@@ -23,7 +24,7 @@
         <field name="name">Documento DIAN</field>
         <field name="model">dian.document</field>
         <field name="arch" type="xml">
-            <form  edit='false'>
+            <form create='false' delete='false' edit='false'>
                 <header>
                     <field name="resend" invisible="True"/>
                     <button name="generate_new_dian_document" string="Autorizar Reenvio" type="object" class="oe_highlight" attrs="{'invisible': [('resend', '=', False)]}" confirm="Desea autorizar un nuevo envio?"/>  
@@ -39,6 +40,8 @@
                             <field name="customer_email"/>
                             <field name="date_email_send"/>
                             <field name="date_email_acknowledgment"/>
+                            <field name="email_response"/>
+                            <field name="email_reject_reason"/>                            
                         </group>
                         <group>
                             <field name="dian_code"/>
