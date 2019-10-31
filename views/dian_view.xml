@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
 
     <record id="dian_document_tree_view" model="ir.ui.view">
         <field name="name">Lista de Documentos DIAN</field>
@@ -61,7 +61,6 @@
         </field>
     </record>
 
-
     <record id="dian_document_search_view" model="ir.ui.view">
         <field name="name">Filtrar Documentos DIAN</field>
         <field name="model">dian.document</field>
@@ -88,7 +87,6 @@
         </field>
     </record>
 
-
     <act_window id="dian_document_action_view"
                 name="Documentos DIAN"
                 res_model="dian.document"
@@ -97,7 +95,6 @@
                 context="{'search_default_filter_por_validar' : 1, 'search_default_filter_por_notificar' : 1}"
     />
 
-
     <menuitem   id="dian_document_menu"
                 name="Documentos DIAN"
                 action="dian_document_action_view"
@@ -105,10 +102,9 @@
                 sequence="99"
     />
 
-
     <record id="send_pending_dian_cron" model="ir.cron">
         <field name="name">Enviar documentos al DIAN</field>
-        <field name="model">dian.document</field>
+        <field name="model_id" ref="model_dian_document"/>
         <field name="function">send_pending_dian</field>
         <field name="args">()</field>
         <field name="interval_type">hours</field>
@@ -117,10 +113,9 @@
         <field name="active">False</field>
     </record>
 
-
     <record id="request_validating_dian_cron" model="ir.cron">
         <field name="name">Solicitar validacion de documentos enviados al DIAN</field>
-        <field name="model">dian.document</field>
+        <field name="model_id" ref="model_dian_document"/>
         <field name="function">request_validating_dian</field>
         <field name="args">()</field>
         <field name="interval_type">hours</field>
@@ -129,4 +124,4 @@
         <field name="active">False</field>
     </record>
 
-</openerp>
+</odoo>

@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
-from openerp import api, fields, models, _
+from odoo import api, fields, models, _
+
 
 class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
     _name = 'account.invoice'
 
     diancode_id = fields.Many2one('dian.document', string="Código DIAN", readonly=True)
-
 
     @api.multi
     def write(self, vals):
@@ -15,10 +14,16 @@ class AccountInvoice(models.Model):
         after_state = self.state
 
         if before_state == 'draft' and after_state == 'open' and self.type == 'out_invoice':
-            new_dian_document = self.env['dian.document'].create({'document_id' : self.id, 'document_type' : 'f'})
+            new_dian_document = self.env['dian.document'].create({
+                'document_id' : self.id,
+                'document_type' : 'f'
+            })
 
         if before_state == 'draft' and after_state == 'open' and self.type == 'out_refund':
-            new_dian_document = self.env['dian.document'].create({'document_id' : self.id, 'document_type' : 'c'})
+            new_dian_document = self.env['dian.document'].create({
+                'document_id' : self.id,
+                'document_type' : 'c'
+            })
         return True
 
 
@@ -62,14 +67,12 @@ class AccountInvoiceReport(models.Model):
 
     diancode_id = fields.Many2one('dian.document', string='Código DIAN')
 
-
     def _select(self):
         return  super(AccountInvoiceReport, self)._select() + ", sub.diancode_id as diancode_id"
-
 
     def _sub_select(self):
         return  super(AccountInvoiceReport, self)._sub_select() + ", ai.diancode_id as diancode_id"
 
-
     def _group_by(self):
         return super(AccountInvoiceReport, self)._group_by() + ", ai.diancode_id"
+

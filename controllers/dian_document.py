@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from openerp import http
-from openerp.http import request
-from openerp import fields
+from odoo import http
+from odoo.http import request
+from odoo import fields
 import ast
 import base64
 import logging
@@ -11,7 +11,7 @@ _logger = logging.getLogger(__name__)
 
 
 class Main(http.Controller):
- 
+
     @http.route("/l10n_co_e-invoice/accept_dian_invoice", type='http', auth='none', csrf=False)
     def accept_dian_invoice(self, dian_document):
         rec_dian_document = request.env['dian.document'].sudo().search([('cufe','=', dian_document)])
@@ -26,7 +26,7 @@ class Main(http.Controller):
             accepted_form  = u'''
             <html>
                 <body><h2>Se registró satisfactoriamente su decisión</h2></body>
-            </html>''' 
+            </html>'''
         return accepted_form
 
 
@@ -92,3 +92,4 @@ class Main(http.Controller):
                 <body><h2>Se registró satisfactoriamente su decisión</h2></body>
             </html>'''
             return reject_reason_form
+

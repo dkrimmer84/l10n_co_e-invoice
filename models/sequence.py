@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-from openerp import api, fields, models, _
+from odoo import api, fields, models, _
+
 
 class SequnceDateRange(models.Model):
     _inherit = 'ir.sequence.dian_resolution'
@@ -7,4 +7,3 @@ class SequnceDateRange(models.Model):
 
     technical_key = fields.Char(string="Clave técnica")
 
-    

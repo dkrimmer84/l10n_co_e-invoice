@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from openerp import api, fields, models, _, tools
-from openerp.exceptions import UserError, ValidationError
+from odoo import api, fields, models, _, tools
+from odoo.exceptions import UserError, ValidationError
 from datetime import datetime, timedelta, date
 from dateutil.relativedelta import *
 from pytz import timezone
@@ -14,7 +14,7 @@ try:
 except:
     print("Cannot import  etree")
 
-from openerp.tools.translate import _
+from odoo.tools.translate import _
 
 try:
     import pyqrcode
@@ -66,10 +66,10 @@ except:
 from random import randint
 
 try:
-    import requests 
-except:    
+    import requests
+except:
     _logger.warning("no se ha cargado requests")
- 
+
 try:
     import xmltodict
 except ImportError:
@@ -79,12 +79,12 @@ try:
     import uuid
 except ImportError:
     _logger.warning('Cannot import uuid library')
-            
+
 server_url = {
     'HABILITACION':'https://facturaelectronica.dian.gov.co/habilitacion/B2BIntegrationEngine/FacturaElectronica/facturaElectronica.wsdl',
     'PRODUCCION':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/facturaElectronica.wsdl',
     'HABILITACION_CONSULTA':'https://facturaelectronica.dian.gov.co/habilitacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl',
-    'PRODUCCION_CONSULTA':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl' 
+    'PRODUCCION_CONSULTA':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl'
 }
 
 import os
@@ -94,10 +94,10 @@ class DianDocument(models.Model):
     _rec_name = 'dian_code'
 
     document_id = fields.Many2one('account.invoice', string="Número de documento", readonly=True, required=True)
-    state = fields.Selection([('por_notificar', 'Por notificar'), 
-                            ('error', 'Error'), 
-                            ('por_validar', 'Por validar'), 
-                            ('exitoso', 'Exitoso'), 
+    state = fields.Selection([('por_notificar', 'Por notificar'),
+                            ('error', 'Error'),
+                            ('por_validar', 'Por validar'),
+                            ('exitoso', 'Exitoso'),
                             ('rechazado', 'Rechazado')],
                             string="Estatus",
                             readonly=True,
@@ -106,12 +106,12 @@ class DianDocument(models.Model):
     date_document_dian = fields.Char(string="Fecha envio al DIAN", readonly=True)
     shipping_response = fields.Selection([('100','100 Error al procesar la solicitud WS entrante'),
                                         ('101','101 El formato de los datos del ejemplar recibido no es correcto: Las entradas de directorio no están permitidos'),
-                                        ('102','102 El formato de los datos del ejemplar recibido no es correcto: Tamaño de archivo comprimido zip es 0 o desconocido'), 
+                                        ('102','102 El formato de los datos del ejemplar recibido no es correcto: Tamaño de archivo comprimido zip es 0 o desconocido'),
                                         ('103','103 Tamaño de archivo comprimido zip es 0 o desconocido'),
-                                        ('104','104 Sólo un archivo es permitido por archivo Zip'), 
+                                        ('104','104 Sólo un archivo es permitido por archivo Zip'),
                                         ('200','200 Ejemplar recibido exitosamente pasará a verificación'),
                                         ('300','300 Archivo no soportado: Solo reconoce los tipos Invoice, DebitNote o CreditNote'),
-                                        ('310','310 El ejemplar contiene errores de validación semantica'), 
+                                        ('310','310 El ejemplar contiene errores de validación semantica'),
                                         ('320','320 Parámetros de solicitud de servicio web, no coincide contra el archivo'),
                                         ('500','500 Error interno del servicio intentar nuevamente')],
                             string="Respuesta de envío",
@@ -158,8 +158,8 @@ class DianDocument(models.Model):
     @api.model
     def _get_resolution_dian(self, data_header_doc):
         # Falta preguntar si con un mismo número de resolución DIAN se puede generar consecutivos de facturas
-        # notas de débto y crédito. 
-        # Ini Frank 16AMY19  
+        # notas de débto y crédito.
+        # Ini Frank 16AMY19
         # dian_sequence = int(self.env.user.partner_id.company_id.in_use_dian_sequence)
         # rec_dian_sequence = self.env['ir.sequence'].search([('id', '=', dian_sequence),('use_dian_control', '=', True),('active', '=', True)])
         # if not rec_dian_sequence:
@@ -169,7 +169,7 @@ class DianDocument(models.Model):
         rec_dian_sequence = self.env['ir.sequence'].search([('id', '=', rec_active_resolution.sequence_id.id)])
         # if not rec_active_resolution:
         #     raise ValidationError('No se puede generar documento para la DIAN porque no hay rango de resolucion DIAN activo.')
-        # Fin Frank 16AMY19 
+        # Fin Frank 16AMY19
         dict_resolution_dian = {}
         dict_resolution_dian['Prefix'] = rec_dian_sequence.prefix                               # Prefijo de número de factura
         dict_resolution_dian['InvoiceAuthorization'] = rec_active_resolution.resolution_number  # Número de resolución
@@ -181,7 +181,7 @@ class DianDocument(models.Model):
         # Frank 16MAY19 dict_resolution_dian['InvoiceID'] = rec_dian_sequence.next_by_id()                      # Codigo del documento
         # Ini Frank 16AMY19
         dict_resolution_dian['InvoiceID'] = data_header_doc.number                              # Codigo del documento
-        # Fin Frank 16AMY19 
+        # Fin Frank 16AMY19
         return dict_resolution_dian
 
 
@@ -191,13 +191,13 @@ class DianDocument(models.Model):
         by_validate_docs = self.env['dian.document'].search([('state', '=', 'por_validar')])
         for by_validate_doc in by_validate_docs:
             dict_response_dian = self._request_document_dian_soap(by_validate_doc, dict_dian_constants)
-            if dict_response_dian['dict_response_dian']['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns3:ConsultaResultadoValidacionDocumentosRespuesta']['ns3:CodigoTransaccion'] != '300':  
+            if dict_response_dian['dict_response_dian']['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns3:ConsultaResultadoValidacionDocumentosRespuesta']['ns3:CodigoTransaccion'] != '300':
                 by_validate_doc.response_document_dian = dict_response_dian['dict_response_dian']['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns3:ConsultaResultadoValidacionDocumentosRespuesta']['ns3:DocumentoRecibido']['ns3:DatosBasicosDocumento']['ns3:EstadoDocumento']
                 by_validate_doc.transaction_code = dict_response_dian['dict_response_dian']['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns3:ConsultaResultadoValidacionDocumentosRespuesta']['ns3:CodigoTransaccion']
                 by_validate_doc.transaction_description = dict_response_dian['dict_response_dian']['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns3:ConsultaResultadoValidacionDocumentosRespuesta']['ns3:DescripcionTransaccion']
                 by_validate_doc.date_request_dian = fields.Datetime.now()
                 by_validate_doc.response_message_dian = ' '
-                if dict_response_dian['dict_response_dian']['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns3:ConsultaResultadoValidacionDocumentosRespuesta']['ns3:CodigoTransaccion'] == '200':               
+                if dict_response_dian['dict_response_dian']['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns3:ConsultaResultadoValidacionDocumentosRespuesta']['ns3:CodigoTransaccion'] == '200':
                     message = ''
                     for comment in dict_response_dian['xmlDocTree'].iter():
                         if comment.tag == "{http://www.dian.gov.co/servicios/facturaelectronica/ConsultaDocumentos}CodigoVeriFunc":
@@ -230,14 +230,14 @@ class DianDocument(models.Model):
         xml_soap_request_validating_dian = '<?xml version="1.0" encoding="UTF-8"?>' + xml_soap_request_validating_dian
         xml_soap_request_validating_dian = xml_soap_request_validating_dian.replace('\n','')
         # Solicitar consulta de resultado
-        headers = {'content-type': 'text/xml'} 
+        headers = {'content-type': 'text/xml'}
         try:
-            response = requests.post(server_url['HABILITACION_CONSULTA'],data=xml_soap_request_validating_dian,headers=headers) 
+            response = requests.post(server_url['HABILITACION_CONSULTA'],data=xml_soap_request_validating_dian,headers=headers)
         except:
             raise ValidationError("503 Servicio no Disponible: El servidor está temporalmente incapacitado para reparar su Solicitud por falta de mantenimiento o capacidad. problemas. Por favor, inténtelo de nuevo más tarde")
             return
         # Almacena respuesta DIAN en archvio temporal en disco
-        xml_file_response_validate = dict_dian_constants['document_repository'] + '/' + 'validate_' + 'falta' 
+        xml_file_response_validate = dict_dian_constants['document_repository'] + '/' + 'validate_' + 'falta'
         f = open(xml_file_response_validate,'w')
         f.write(response.content)
         f.close()
@@ -264,7 +264,7 @@ class DianDocument(models.Model):
         xmlDocTree = etree.tostring(xmlDocTree[3])
         xmlDocTree = etree.fromstring(xmlDocTree)
         ResponseValidate['dict_response_dian'] = dict_response_dian
-        if ResponseValidate['dict_response_dian']['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns3:ConsultaResultadoValidacionDocumentosRespuesta']['ns3:CodigoTransaccion'] != '200': 
+        if ResponseValidate['dict_response_dian']['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns3:ConsultaResultadoValidacionDocumentosRespuesta']['ns3:CodigoTransaccion'] != '200':
             # Falta condicionar respuesta cuando no existen errores.
             xmlDocTree = etree.tostring(xmlDocTree[1])
             #print 'paso xmlDocTree de nuevo 1 '
@@ -300,7 +300,7 @@ class DianDocument(models.Model):
         for doc_send_dian in docs_send_dian:
             data_header_doc = self.env['account.invoice'].search([('id', '=', doc_send_dian.document_id.id)])
             # Constantes del documento
-            data_constants_document = self._generate_data_constants_document(data_header_doc, dian_constants)            
+            data_constants_document = self._generate_data_constants_document(data_header_doc, dian_constants)
             # Construye el documento XML sin firma para la factura
             if data_constants_document['InvoiceTypeCode'] == '1':
                 # Detalle de impuestos
@@ -309,7 +309,7 @@ class DianDocument(models.Model):
                 # Detalle líneas de factura
                 data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id)
                 # Generar CUFE
-                CUFE = self._generate_cufe(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
+                CUFE = self._generate_cufe(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'],
                                         data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
                                         dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
                                         data_constants_document['CustomerID'], data_constants_document['TechnicalKey'], data_constants_document['PayableAmount'], data_taxs)
@@ -322,12 +322,12 @@ class DianDocument(models.Model):
             if data_constants_document['InvoiceTypeCode'] == '2':
                 data_taxs = self._get_taxs_data(data_header_doc.id)
                 data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
-                # Detalle líneas de nota de crédito                
+                # Detalle líneas de nota de crédito
                 data_credit_lines_xml = self._generate_credit_lines_data_xml(template_credit_line_data_xml, data_header_doc.id, data_constants_document)
                 # Generar CUFE
-                # CUFE = '' 
+                # CUFE = ''
                 # doc_send_dian.cufe = CUFE
-                CUFE = self._generate_cufe(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
+                CUFE = self._generate_cufe(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'],
                         data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
                         dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
                         data_constants_document['CustomerID'], data_constants_document['TechnicalKey'], data_constants_document['PayableAmount'], data_taxs)
@@ -355,24 +355,24 @@ class DianDocument(models.Model):
             doc_send_dian.xml_document = data_xml_document
             # Generar nombre archvio ZIP
             doc_send_dian.zip_file_name = data_constants_document['FileNameZIP']
-            # Comprimir documento electrónico         
+            # Comprimir documento electrónico
             Document = self._generate_zip_content(data_constants_document['FileNameXML'], data_constants_document['FileNameZIP'], data_xml_document, dian_constants['document_repository'])
             #Fecha y hora de la petición
             Created = self._generate_datetime_created()
             #doc_send_dian.date_document_dian = fields.Datetime.now()
             doc_send_dian.date_document_dian = data_constants_document['IssueDateSend']
-            # Construye el XML de petición o envío  
+            # Construye el XML de petición o envío
             data_xml_send = self._generate_data_send_xml(template_send_data_xml, dian_constants,data_constants_document, Created, Document)
             # Enviar documento al DIAN (Petición).
-            headers = {'content-type': 'text/xml'} 
+            headers = {'content-type': 'text/xml'}
             try:
-                response = requests.post(server_url['HABILITACION'],data=data_xml_send,headers=headers) 
+                response = requests.post(server_url['HABILITACION'],data=data_xml_send,headers=headers)
             except:
                 # Falta
                 print("No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas")
                 return
             # Almacena respuesta DIAN en archivo en disco
-            xml_file_response = dian_constants['document_repository'] + '/' + 'response_' + data_constants_document['FileNameXML'] 
+            xml_file_response = dian_constants['document_repository'] + '/' + 'response_' + data_constants_document['FileNameXML']
             f = open (xml_file_response,'w')
             f.write(response.content)
             f.close()
@@ -381,7 +381,7 @@ class DianDocument(models.Model):
             line_xml_response = f.readline()
             while line_xml_response != '':
                 if line_xml_response.find("<SOAP-ENV:Envelope") == 0:
-                    response_xml =  line_xml_response  
+                    response_xml =  line_xml_response
                 if line_xml_response.find("<title>503 Service Unavailable</title>") == 0:
                     raise ValidationError("503 Servicio no Disponible: El servidor está temporalmente incapacitado para reparar su Solicitud por falta de mantenimiento o capacidad. problemas. Por favor, inténtelo de nuevo más tarde")
                 line_xml_response = f.readline()
@@ -392,13 +392,13 @@ class DianDocument(models.Model):
             response_xml_dict = xmltodict.parse(response_xml)
             if response_xml_dict['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns2:EnvioFacturaElectronicaRespuesta']['ns2:Response'] == '200':
                 doc_send_dian.state = 'por_validar'
-            else: 
+            else:
                 doc_send_dian.state = 'por_notificar'
                 doc_send_dian.response_message_dian = response_xml_dict['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns2:EnvioFacturaElectronicaRespuesta']['ns2:Comments']
             doc_send_dian.shipping_response = response_xml_dict['SOAP-ENV:Envelope']['SOAP-ENV:Body']['ns2:EnvioFacturaElectronicaRespuesta']['ns2:Response']
             # Generar código QR
             doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
-        return 
+        return
 
 
     @api.model
@@ -410,7 +410,7 @@ class DianDocument(models.Model):
         data_xml_SignatureValue = ''
         # Generar clave de referencia 0 para la firma del documento (referencia ref0)
         # Actualizar datos de signature
-        #    Generar certificado publico para la firma del documento en el elemento keyinfo 
+        #    Generar certificado publico para la firma del documento en el elemento keyinfo
         data_public_certificate_base = dian_constants['Certificate']
         #    Generar clave de politica de firma para la firma del documento (SigPolicyHash)
         data_xml_politics = self._generate_signature_politics(dian_constants['document_repository'])
@@ -420,10 +420,10 @@ class DianDocument(models.Model):
         #    1ra. Actualización de firma ref0 (leer todo el xml sin firma)
         data_xml_signature_ref_zero = self._generate_signature_ref0(data_xml_document)
         #    Actualiza signature
-        data_xml_signature = self._update_signature(template_signature_data_xml,  
-                                data_xml_signature_ref_zero, data_public_certificate_base, 
-                                data_xml_keyinfo_base, data_xml_politics, 
-                                data_xml_SignedProperties_base, data_xml_SigningTime, 
+        data_xml_signature = self._update_signature(template_signature_data_xml,
+                                data_xml_signature_ref_zero, data_public_certificate_base,
+                                data_xml_keyinfo_base, data_xml_politics,
+                                data_xml_SignedProperties_base, data_xml_SigningTime,
                                 dian_constants, data_xml_SignatureValue, data_constants_document)
         parser = etree.XMLParser(remove_blank_text=True)
         data_xml_signature = etree.tostring(etree.XML(data_xml_signature, parser=parser))
@@ -432,9 +432,9 @@ class DianDocument(models.Model):
         KeyInfo = etree.tostring(KeyInfo[2])
         xmlns = 'xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:clm54217="urn:un:unece:uncefact:codelist:specification:54217:2001" xmlns:clm66411="urn:un:unece:uncefact:codelist:specification:66411:2001" xmlns:clmIANAMIMEMediaType="urn:un:unece:uncefact:codelist:specification:IANAMIMEMediaType:2003" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:fe="http://www.dian.gov.co/contratos/facturaelectronica/v1" xmlns:qdt="urn:oasis:names:specification:ubl:schema:xsd:QualifiedDatatypes-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:udt="urn:un:unece:uncefact:data:specification:UnqualifiedDataTypesSchemaModule:2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
         KeyInfo = KeyInfo.replace('xmlns:ds="http://www.w3.org/2000/09/xmldsig#"', '%s' % xmlns )
-        data_xml_keyinfo_base = self._generate_signature_ref1(KeyInfo)        
+        data_xml_keyinfo_base = self._generate_signature_ref1(KeyInfo)
         data_xml_signature = data_xml_signature.replace("<ds:DigestValue/>","<ds:DigestValue>%s</ds:DigestValue>" % data_xml_keyinfo_base, 1)
-        #    Actualiza SignedProperties   
+        #    Actualiza SignedProperties
         SignedProperties = etree.fromstring(data_xml_signature)
         SignedProperties = etree.tostring(SignedProperties[3])
         SignedProperties = etree.fromstring(SignedProperties)
@@ -461,15 +461,15 @@ class DianDocument(models.Model):
     def _get_dian_constants(self):
         user = self.env['res.users'].search([('id', '=', self.env.uid)])
         company = self.env['res.company'].search([('id', '=', user.company_id.id)])
-        partner = company.partner_id 
+        partner = company.partner_id
         dian_constants = {}
         dian_constants['document_repository'] = company.document_repository                             # Ruta en donde se almacenaran los archivos que utiliza y genera la Facturación Electrónica
-        dian_constants['Username'] = company.software_identification_code                               # Identificador del software en estado en pruebas o activo 
+        dian_constants['Username'] = company.software_identification_code                               # Identificador del software en estado en pruebas o activo
         dian_constants['Password'] = hashlib.new('sha256',company.password_environment).hexdigest()     # Es el resultado de aplicar la función de resumen SHA-256 sobre la contraseña del software en estado en pruebas o activo
         dian_constants['IdentificationCode'] = partner.country_id.code                                  # Identificador de pais
         dian_constants['ProviderID'] = partner.xidentification     if partner.xidentification else ''   # ID Proveedor de software o cliente si es software propio
         dian_constants['SoftwareID'] = company.software_identification_code                             # ID del software a utilizar
-        dian_constants['SoftwareSecurityCode'] = self._generate_software_security_code(company.software_identification_code, 
+        dian_constants['SoftwareSecurityCode'] = self._generate_software_security_code(company.software_identification_code,
                                                                                 company.software_pin)   # Código de seguridad del software: (hashlib.new('sha384', str(self.company_id.software_id) + str(self.company_id.software_pin)))
         dian_constants['SeedCode'] = company.seed_code
         dian_constants['UBLVersionID'] = 'UBL 2.0'                                                      # Versión base de UBL usada. Debe marcar UBL 2.0
@@ -483,12 +483,12 @@ class DianDocument(models.Model):
         dian_constants['SupplierCityName'] = partner.city                                               # Municipio o ciudad
         dian_constants['SupplierLine'] = partner.street                                                 # Calle
         dian_constants['SupplierRegistrationName'] = company.trade_name                                 # Razón Social: Obligatorio en caso de ser una persona jurídica. Razón social de la empresa
-        dian_constants['SupplierCountry'] = partner.country_id.code 
+        dian_constants['SupplierCountry'] = partner.country_id.code
         dian_constants['SupplierTaxLevelCode'] = partner.x_pn_retri                                     # Régimen al que pertenece Debe referenciar a una lista de códigos con los por ejemplo: • Común • Simplificado • No aplica valores correspondientes
         dian_constants['Certificate'] = company.digital_certificate
-        dian_constants['NitSinDV'] = partner.xidentification 
+        dian_constants['NitSinDV'] = partner.xidentification
         # Falta
-        dian_constants['CertificateKey'] = company.certificate_key 
+        dian_constants['CertificateKey'] = company.certificate_key
         #password = 'Zhx7KbK4ND'
         dian_constants['CertDigestDigestValue'] = self._generate_CertDigestDigestValue(company.digital_certificate, dian_constants['CertificateKey'], dian_constants['document_repository']) #Falta se presume que es el certificado publico convertido a sha256 base64
         #dian_constants['CertDigestDigestValue'] = 'bVfreWgLblq91Pk6GIwMdylAOqvnVhZV5DeQoDqjqmg='
@@ -518,7 +518,7 @@ class DianDocument(models.Model):
         data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_tax)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
         data_constants_document['PayableAmount'] = self._complements_second_decimal(data_header_doc.amount_total)           # Total de Factura: Total importe bruto + Total Impuestos-Total Impuesto Retenidos
         date_invoice_cufe = self._generate_datetime_IssueDate()
-        data_constants_document['IssueDate'] = date_invoice_cufe['IssueDate']                                               # Fecha de emisión de la factura a efectos fiscales        
+        data_constants_document['IssueDate'] = date_invoice_cufe['IssueDate']                                               # Fecha de emisión de la factura a efectos fiscales
         data_constants_document['IssueDateSend'] = date_invoice_cufe['IssueDateSend']
         data_constants_document['IssueDateCufe'] = date_invoice_cufe['IssueDateCufe']
         data_constants_document['IssueTime'] = self._get_time()                                                             # Hora de emisión de la fcatura
@@ -526,7 +526,7 @@ class DianDocument(models.Model):
         data_constants_document['DocumentCurrencyCode'] = data_header_doc.currency_id.name                                  # Divisa de la Factura
         data_constants_document['CustomerAdditionalAccountID'] = '2' if data_header_doc.partner_id.company_type == 'company' else '1'
         data_constants_document['CustomerID'] = data_header_doc.partner_id.xidentification if data_header_doc.partner_id.xidentification else '' # Identificador fiscal: En Colombia, el NIT
-        data_constants_document['CustomerSchemeID'] = data_header_doc.partner_id.doctype                                    # tipo de identificdor fiscal 
+        data_constants_document['CustomerSchemeID'] = data_header_doc.partner_id.doctype                                    # tipo de identificdor fiscal
         data_constants_document['CustomerPartyName'] = self._replace_character_especial(data_header_doc.partner_id.name)                                      # Nombre Comercial
         data_constants_document['CustomerDepartment'] = data_header_doc.partner_id.state_id.name if data_header_doc.partner_id.state_id.name else ''
         data_constants_document['CustomerCitySubdivisionName'] = data_header_doc.partner_id.xcity.name if data_header_doc.partner_id.xcity.name else ''
@@ -536,12 +536,12 @@ class DianDocument(models.Model):
         data_constants_document['TaxLevelCode'] = data_header_doc.partner_id.x_pn_retri if data_header_doc.partner_id.x_pn_retri else ''
         data_constants_document['RegistrationName'] = self._replace_character_especial(data_header_doc.partner_id.companyName)
         data_constants_document['CustomerEmail'] = data_header_doc.partner_id.email if data_header_doc.partner_id.email else ''
-        
+
         # Falta
         # if data_constants_document['InvoiceTypeCode'] == '1':
         #     data_constants_document['TypeDocument'] = 'Invoice'
         # if data_constants_document['InvoiceTypeCode'] == '2':
-        #     data_constants_document['TypeDocument'] = 'CreditNote' 
+        #     data_constants_document['TypeDocument'] = 'CreditNote'
 
         # Datos nota de crédito
         if data_constants_document['InvoiceTypeCode'] == '2':
@@ -552,7 +552,7 @@ class DianDocument(models.Model):
                     data_constants_document['IDCancelledBill'] = dian_document_cancel.dian_code
                     data_constants_document['CUFECancelledBill'] = dian_document_cancel.cufe
                     data_constants_document['IssueDateCancelledBill'] = invoice_cancel.date_invoice
-        # Genera identificador único 
+        # Genera identificador único
         identifier = uuid.uuid4()
         data_constants_document['identifier'] = identifier
         return data_constants_document
@@ -686,7 +686,7 @@ class DianDocument(models.Model):
         <cbc:PrepaidAmount currencyID="COP">0.00</cbc:PrepaidAmount>
         <cbc:PayableAmount currencyID="COP">%(PayableAmount)s</cbc:PayableAmount>
     </fe:LegalMonetaryTotal>%(data_lines_xml)s
-</fe:Invoice>""" 
+</fe:Invoice>"""
         return template_basic_data_fe_xml
 
 
@@ -822,14 +822,14 @@ class DianDocument(models.Model):
                         'CustomerDepartment' : dcd['CustomerDepartment'],
                         'CustomerCitySubdivisionName' : dcd['CustomerCitySubdivisionName'],
                         'CustomerCityName' : dcd['CustomerCityName'],
-                        'CustomerAddressLine' : dcd['CustomerAddressLine'], 
+                        'CustomerAddressLine' : dcd['CustomerAddressLine'],
                         'CustomerCountry' : dcd['CustomerCountry'],
                         'TaxLevelCode' : dcd['TaxLevelCode'],
                         'RegistrationName' : dcd['RegistrationName'],
                         'data_taxs_xml' : data_taxs_xml,
                         'TotalLineExtensionAmount' : dcd['LineExtensionAmount'],
                         'TotalTaxExclusiveAmount' : dcd['TaxExclusiveAmount'],
-                        'PayableAmount' : dcd['PayableAmount'],                        
+                        'PayableAmount' : dcd['PayableAmount'],
                         'data_credit_lines_xml' : data_credit_lines_xml
                         }
         return template_basic_data_nc_xml
@@ -870,7 +870,7 @@ class DianDocument(models.Model):
         <fe:Price>
             <cbc:PriceAmount currencyID="COP">%(ILPriceAmount)s</cbc:PriceAmount>
         </fe:Price>
-    </fe:InvoiceLine>""" 
+    </fe:InvoiceLine>"""
         return template_line_data_xml
 
 
@@ -878,7 +878,7 @@ class DianDocument(models.Model):
         template_credit_line_data_xml = """
     <cac:CreditNoteLine>
         <cbc:ID>%(CRLinea)s</cbc:ID>
-        <cbc:UUID>%(CUFECancelledBill)s</cbc:UUID> 
+        <cbc:UUID>%(CUFECancelledBill)s</cbc:UUID>
         <cbc:LineExtensionAmount currencyID="COP">%(CRLineExtensionAmount)s</cbc:LineExtensionAmount>
         <cac:DiscrepancyResponse>
             <cbc:ReferenceID/>
@@ -889,7 +889,7 @@ class DianDocument(models.Model):
                 <cbc:ID schemeName="numero de la factura a anular">%(IDCancelledBill)s</cbc:ID>
                 <cbc:UUID schemeName="CUFE de la factura de venta || factura de exportacion">%(CUFECancelledBill)s</cbc:UUID>
                 <cbc:IssueDate>%(IssueDateCancelledBill)s</cbc:IssueDate>
-            </cac:InvoiceDocumentReference> 
+            </cac:InvoiceDocumentReference>
             <cac:BillingReferenceLine>
                 <cbc:ID/>
                 <cbc:Amount currencyID="COP">%(CRLineExtensionAmount)s</cbc:Amount>
@@ -901,12 +901,12 @@ class DianDocument(models.Model):
         <cac:Item>
             <cbc:Description>%(CRDescription)s</cbc:Description>
         </cac:Item>
-    </cac:CreditNoteLine>""" 
+    </cac:CreditNoteLine>"""
         return template_credit_line_data_xml
 
 
     def _template_signature_data_xml(self):
-        template_signature_data_xml = """                               
+        template_signature_data_xml = """
                 <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="xmldsig-%(identifier)s">
                     <ds:SignedInfo>
                         <ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
@@ -971,8 +971,8 @@ class DianDocument(models.Model):
                             </xades:SignedProperties>
                         </xades:QualifyingProperties>
                     </ds:Object>
-                </ds:Signature>""" 
-        return template_signature_data_xml 
+                </ds:Signature>"""
+        return template_signature_data_xml
 
 
     def _template_send_data_xml(self):
@@ -1004,7 +1004,7 @@ class DianDocument(models.Model):
     def _get_taxs_data(self, invoice_id):
         dic_taxs_data = {}
         iva_01 = 0.00
-        ico_02 = 0.00 
+        ico_02 = 0.00
         ica_03 = 0.00
         tax_percentage_iva_01 = 0.00
         tax_percentage_ico_02 = 0.00
@@ -1014,9 +1014,9 @@ class DianDocument(models.Model):
         total_base_ica_03 = 0.00
         data_tax_detail_doc = self.env['account.invoice.tax'].search([('invoice_id', '=', invoice_id)])
         for item_tax in data_tax_detail_doc:
-            iva_01 += item_tax.amount if item_tax.tax_id.tax_group_id.id  == 5 else 0.0 
-            ica_03 += item_tax.amount if item_tax.tax_id.tax_group_id.id  == 4 else 0.0 
-            ico_02 += item_tax.amount if item_tax.tax_id.tax_group_id.id  not in (5,4) else 0.0  
+            iva_01 += item_tax.amount if item_tax.tax_id.tax_group_id.id  == 5 else 0.0
+            ica_03 += item_tax.amount if item_tax.tax_id.tax_group_id.id  == 4 else 0.0
+            ico_02 += item_tax.amount if item_tax.tax_id.tax_group_id.id  not in (5,4) else 0.0
             tax_percentage_iva_01 = self.env['account.tax'].search([('id', '=', item_tax.tax_id.id)]).amount if item_tax.tax_id.tax_group_id.id  == 5 else tax_percentage_iva_01
             tax_percentage_ica_03 = self.env['account.tax'].search([('id', '=', item_tax.tax_id.id)]).amount if item_tax.tax_id.tax_group_id.id  == 4 else tax_percentage_ico_02
             tax_percentage_ico_02 = self.env['account.tax'].search([('id', '=', item_tax.tax_id.id)]).amount if item_tax.tax_id.tax_group_id.id  not in (5,4) else tax_percentage_ica_03
@@ -1025,7 +1025,7 @@ class DianDocument(models.Model):
                 total_base_iva_01 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_id.id  == 5 else 0
                 total_base_ica_03 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_id.id  == 4 else 0
                 total_base_ico_02 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_id.id  not in (5,4) else 0
-        
+
         dic_taxs_data['iva_01'] = self._complements_second_decimal(iva_01)
         dic_taxs_data['tax_percentage_iva_01'] = self._complements_second_decimal(tax_percentage_iva_01)
         dic_taxs_data['total_base_iva_01'] = self._complements_second_decimal(total_base_iva_01)
@@ -1093,7 +1093,7 @@ class DianDocument(models.Model):
             ILChargeIndicator = 'true'                                                          # Indica que el elemento es un Cargo (5.1.1) y no un descuento (4.1.1)
             ILAmount =  self._complements_second_decimal(data_line.discount)                    # Valor Descuento: Importe total a descontar.
             ILDescription = self._replace_character_especial(data_line.name)
-            ILPriceAmount = self._complements_second_decimal(data_line.price_unit)              # Precio Unitario   
+            ILPriceAmount = self._complements_second_decimal(data_line.price_unit)              # Precio Unitario
             data_line_xml += template_line_data_xml % {'ILLinea' : ILLinea,
                                                     'ILInvoicedQuantity' : ILInvoicedQuantity,
                                                     'ILLineExtensionAmount' : ILLineExtensionAmount,
@@ -1113,11 +1113,11 @@ class DianDocument(models.Model):
             CRLinea += 1
             #CRLineExtensionAmount = self._complements_second_decimal(data_line.price_subtotal) # 13.1.1.12 - Costo Total: Coste Total. Resultado: Unidad de Medida x Precio Unidad.
             CRLineExtensionAmount = self._complements_second_decimal(data_line.price_unit)
-            CRTaxAmount = self._complements_second_decimal(data_line.price_subtotal - data_line.price_unit)  
+            CRTaxAmount = self._complements_second_decimal(data_line.price_subtotal - data_line.price_unit)
             CRDescription = self._replace_character_especial(data_line.name)
             data_credit_note_line_xml += template_credit_line_data_xml % {'CRLinea' : CRLinea,
                                                         'CRLineExtensionAmount' : CRLineExtensionAmount,
-                                                        'CUFECancelledBill' : dcd['CUFECancelledBill'],                                                        
+                                                        'CUFECancelledBill' : dcd['CUFECancelledBill'],
                                                         'IDCancelledBill' : dcd['IDCancelledBill'],
                                                         'IssueDateCancelledBill' : dcd['IssueDateCancelledBill'],
                                                         'CRTaxAmount' : CRTaxAmount,
@@ -1129,7 +1129,7 @@ class DianDocument(models.Model):
     @api.model
     def _generate_cufe(self, invoice_id, NumFac, FecFac, Time, ValFac, NitOFE, TipAdq, NumAdq, ClTec, ValPag, data_taxs):
         ValFac = str(ValFac)
-        CodImp1 = '01' 
+        CodImp1 = '01'
         ValImp1 = str(data_taxs['iva_01'])
         CodImp2 = '02'
         ValImp2 = str(data_taxs['ico_02'])
@@ -1184,7 +1184,7 @@ class DianDocument(models.Model):
                         'CustomerCityName' : dcd['CustomerCityName'],
                         'CustomerCountry' : dcd['CustomerCountry'],
                         'CustomerEmail' : dcd['CustomerEmail'],
-                        'CustomerAddressLine' : dcd['CustomerAddressLine'],                                
+                        'CustomerAddressLine' : dcd['CustomerAddressLine'],
                         'TaxLevelCode' : dcd['TaxLevelCode'],
                         'RegistrationName' : dcd['RegistrationName'],
                         'TotalLineExtensionAmount' : dcd['LineExtensionAmount'],
@@ -1210,7 +1210,7 @@ class DianDocument(models.Model):
         return data_xml_document
 
     @api.model
-    def _generate_data_send_xml(self, template_send_data_xml, dian_constants, data_constants_document, 
+    def _generate_data_send_xml(self, template_send_data_xml, dian_constants, data_constants_document,
                                 Created, Document):
         data_send_xml = template_send_data_xml % {'Username' : dian_constants['Username'],
                         'Password' : dian_constants['Password'],
@@ -1226,7 +1226,7 @@ class DianDocument(models.Model):
 
     @api.model
     def _generate_signature_ref0(self, data_xml_document):
-        # 1er paso. Generar la referencia 0 que consiste en obtener keyvalue desde todo el xml del 
+        # 1er paso. Generar la referencia 0 que consiste en obtener keyvalue desde todo el xml del
         #     documento electronico aplicando el algoritmo SHA256 y convirtiendolo a base64
         template_basic_data_fe_xml = data_xml_document
         template_basic_data_fe_xml = etree.tostring(etree.fromstring(template_basic_data_fe_xml), method="c14n", exclusive=False,with_comments=False,inclusive_ns_prefixes=None)
@@ -1237,28 +1237,28 @@ class DianDocument(models.Model):
 
 
     @api.model
-    def _update_signature(self, template_signature_data_xml, data_xml_signature_ref_zero, data_public_certificate_base, 
-                                data_xml_keyinfo_base, data_xml_politics, 
+    def _update_signature(self, template_signature_data_xml, data_xml_signature_ref_zero, data_public_certificate_base,
+                                data_xml_keyinfo_base, data_xml_politics,
                                 data_xml_SignedProperties_base, data_xml_SigningTime, dian_constants,
                                 data_xml_SignatureValue, data_constants_document):
-        data_xml_signature = template_signature_data_xml % {'data_xml_signature_ref_zero' : data_xml_signature_ref_zero,                                        
+        data_xml_signature = template_signature_data_xml % {'data_xml_signature_ref_zero' : data_xml_signature_ref_zero,
                                         'data_public_certificate_base' : data_public_certificate_base,
                                         'data_xml_keyinfo_base' : data_xml_keyinfo_base,
                                         'data_xml_politics' : data_xml_politics,
                                         'data_xml_SignedProperties_base' : data_xml_SignedProperties_base,
-                                        'data_xml_SigningTime' : data_xml_SigningTime, 
+                                        'data_xml_SigningTime' : data_xml_SigningTime,
                                         'CertDigestDigestValue' : dian_constants['CertDigestDigestValue'],
-                                        'IssuerName' : dian_constants['IssuerName'], 
+                                        'IssuerName' : dian_constants['IssuerName'],
                                         'SerialNumber' : dian_constants['SerialNumber'],
                                         'SignatureValue' : data_xml_SignatureValue,
-                                        'identifier' : data_constants_document['identifier'],                                      
+                                        'identifier' : data_constants_document['identifier'],
                                         }
         return data_xml_signature
 
 
     @api.multi
     def _generate_signature_ref1(self, data_xml_keyinfo_generate):
-        # Generar la referencia 1 que consiste en obtener keyvalue desde el keyinfo contenido 
+        # Generar la referencia 1 que consiste en obtener keyvalue desde el keyinfo contenido
         # en el documento electrónico aplicando el algoritmo SHA256 y convirtiendolo a base64
         data_xml_keyinfo_sha256 = hashlib.new('sha256', data_xml_keyinfo_generate)
         data_xml_keyinfo_digest = data_xml_keyinfo_sha256.digest()
@@ -1268,11 +1268,11 @@ class DianDocument(models.Model):
 
     @api.multi
     def _generate_signature_politics(self, document_repository):
-        # Generar la referencia 2 que consiste en obtener keyvalue desde el documento de politica 
-        # aplicando el algoritmo SHA1 antes del 20 de septimebre de 2016 y sha256 después  de esa 
-        # fecha y convirtiendolo a base64. Se  puede utilizar como una constante ya que no variará 
+        # Generar la referencia 2 que consiste en obtener keyvalue desde el documento de politica
+        # aplicando el algoritmo SHA1 antes del 20 de septimebre de 2016 y sha256 después  de esa
+        # fecha y convirtiendolo a base64. Se  puede utilizar como una constante ya que no variará
         # en años segun lo indica la DIAN.
-        #  
+        #
         # politicav2 = document_repository+'/politicadefirmav2.pdf'
         # politicav2 = open(politicav2,'r')
         # contenido_politicav2 = politicav2.read()
@@ -1286,7 +1286,7 @@ class DianDocument(models.Model):
 
     @api.multi
     def _generate_signature_ref2(self, data_xml_SignedProperties_generate):
-        # Generar la referencia 2, se obtine desde el elemento SignedProperties que se 
+        # Generar la referencia 2, se obtine desde el elemento SignedProperties que se
         # encuentra en la firma aplicando el algoritmo SHA256 y convirtiendolo a base64.
         data_xml_SignedProperties_c14n = etree.tostring(etree.fromstring(data_xml_SignedProperties_generate), method="c14n")
         data_xml_SignedProperties_sha256 = hashlib.new('sha256', data_xml_SignedProperties_c14n)
@@ -1297,9 +1297,9 @@ class DianDocument(models.Model):
 
     @api.multi
     def _generate_CertDigestDigestValue(self, digital_certificate, password, document_repository):
-        #Falta  
+        #Falta
         archivo_key = document_repository + '/Certificado.p12'
-        key = crypto.load_pkcs12(open(archivo_key, 'rb').read(), password)  
+        key = crypto.load_pkcs12(open(archivo_key, 'rb').read(), password)
         certificate = hashlib.sha256(crypto.dump_certificate(crypto.FILETYPE_ASN1, key.get_certificate()))
         CertDigestDigestValue = base64.b64encode(certificate.digest())
         return CertDigestDigestValue
@@ -1312,11 +1312,11 @@ class DianDocument(models.Model):
         # Falta
         #password = 'Zhx7KbK4ND'
         try:
-            key = crypto.load_pkcs12(open(archivo_key, 'rb').read(), password)  
+            key = crypto.load_pkcs12(open(archivo_key, 'rb').read(), password)
         except Exception as ex:
             raise UserError(tools.ustr(ex))
         try:
-            signature = crypto.sign(key.get_privatekey(), data_xml_SignatureValue_c14n, 'sha256')               
+            signature = crypto.sign(key.get_privatekey(), data_xml_SignatureValue_c14n, 'sha256')
         except Exception as ex:
             raise UserError(tools.ustr(ex))
 
@@ -1335,7 +1335,7 @@ class DianDocument(models.Model):
         # print('')
         # print('issuer: ', issuer)
 
-        SignatureValue = base64.b64encode(signature) 
+        SignatureValue = base64.b64encode(signature)
         # Falta
         archivo_pem = document_repository+'/744524.pem'
         pem = crypto.load_certificate(crypto.FILETYPE_PEM, open(archivo_pem, 'rb').read())
@@ -1351,7 +1351,7 @@ class DianDocument(models.Model):
         fmt = "%Y-%m-%dT%H:%M:%S-05:00"
         now_utc = datetime.now(timezone('UTC'))
         now_bogota = now_utc.astimezone(timezone('America/Bogota'))
-        data_xml_SigningTime = now_bogota.strftime(fmt) 
+        data_xml_SigningTime = now_bogota.strftime(fmt)
         return data_xml_SigningTime
 
 
@@ -1374,7 +1374,7 @@ class DianDocument(models.Model):
         now_time = now_bogota.strftime(fmt)
         return now_time
 
-    
+
     @api.model
     def _generate_xml_filename(self, data_resolution, NitSinDV, doctype):
         if doctype == 'out_invoice':
@@ -1387,13 +1387,13 @@ class DianDocument(models.Model):
         len_prefix = len(data_resolution['Prefix'])
         len_invoice = len(data_resolution['InvoiceID'])
         dian_code_int = int(data_resolution['InvoiceID'][len_prefix:len_invoice])
-        dian_code_hex = self.IntToHex(dian_code_int)
+        dian_code_hex = self.int_to_hex(dian_code_int)
         dian_code_hex.zfill(10)
         file_name_xml = docdian + NitSinDV.zfill(10) + dian_code_hex.zfill(10) + '.xml'
         return file_name_xml
 
 
-    def IntToHex(self, dian_code_int):
+    def int_to_hex(self, dian_code_int):
         dian_code_hex = '%02x' % dian_code_int
         return dian_code_hex
 
@@ -1409,7 +1409,7 @@ class DianDocument(models.Model):
         len_prefix = len(data_resolution['Prefix'])
         len_invoice = len(data_resolution['InvoiceID'])
         dian_code_int = int(data_resolution['InvoiceID'][len_prefix:len_invoice])
-        dian_code_hex = self.IntToHex(dian_code_int)
+        dian_code_hex = self.int_to_hex(dian_code_int)
         dian_code_hex.zfill(10)
         file_name_zip = docdian + NitSinDV.zfill(10) + dian_code_hex.zfill(10) + '.zip'
         return file_name_zip
@@ -1447,8 +1447,8 @@ class DianDocument(models.Model):
         NitOFE = dian_constants['SupplierID']
         DocAdq = data_constants_document['CustomerID']
         ValFacIm = data_constants_document['PayableAmount']
-        ValIva = data_taxs['iva_01'] 
-        ValOtroIm = data_taxs['ico_02'] + data_taxs['ica_03']   
+        ValIva = data_taxs['iva_01']
+        ValOtroIm = data_taxs['ico_02'] + data_taxs['ica_03']
         datos_qr = ' NumFac: '+NumFac+' FecFac: '+FecFac+' NitFac: '+NitOFE+' DocAdq: '+DocAdq+' ValFac: '+str(ValFac)+' ValIva: '+str(ValIva)+' ValOtroIm: '+str(ValOtroIm)+' ValFacIm: '+str(ValFacIm)+' CUFE: '+CUFE
         # Genera código QR
         qr_code = pyqrcode.create(datos_qr)
@@ -1459,8 +1459,8 @@ class DianDocument(models.Model):
     @api.model
     def _generate_nonce(self, InvoiceID, seed_code):
         # NonceEncodingType. Se obtiene de:
-        # 1. Calcular un valor aleatorio cuya semilla será definida y solamante conocida por el facturador 
-        # electrónico 
+        # 1. Calcular un valor aleatorio cuya semilla será definida y solamante conocida por el facturador
+        # electrónico
         # 2. Convertir a Base 64 el valor aleatorio obtenbido.
         nonce = randint(1,seed_code)
         nonce = base64.b64encode(InvoiceID+str(nonce))
@@ -1470,7 +1470,7 @@ class DianDocument(models.Model):
     def _generate_software_security_code(self, software_identification_code, software_pin):
         software_security_code = hashlib.sha384(software_identification_code + software_pin)
         software_security_code = software_security_code.hexdigest()
-        return  software_security_code 
+        return  software_security_code
 
 
     def _generate_datetime_created(self):
@@ -1547,7 +1547,7 @@ class DianDocument(models.Model):
         amount_int = int(amount_dec)
         if  amount_int % 10 == 0:
             amount = str(amount) + '0'
-        else: 
+        else:
             amount = str(amount)
         return amount
 
@@ -1572,5 +1572,5 @@ class DianDocument(models.Model):
 #   tns:AccountingSupplierPart   # Datos del facturador electronico
 #   tns:AccountingCustomerParty # Datos del CLiente
 #   tns:LegalMonetaryTotal
-#   TaxTotal 
+#   TaxTotal
 #   CreditNoteLine # 13.1.1 - Línea de Factura (nota crédito): Elemento que agrupa todos los campos de una línea de factura

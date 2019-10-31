@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-from openerp import api, fields, models, _
+from odoo import api, fields, models, _
 
-class Company(models.Model):
+
+class ResCompany(models.Model):
     _inherit = 'res.company'
     _name = 'res.company'
-
 
     def _get_dian_sequence(self):
         list_dian_sequence = []

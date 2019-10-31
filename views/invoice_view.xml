@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
 <!-- action_invoice_sent     -->
     <data>
 
@@ -99,5 +99,4 @@
 
     </data>
 
-
-</openerp>
+</odoo>
