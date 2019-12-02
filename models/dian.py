@@ -173,7 +173,6 @@ class DianDocument(models.Model):
     def _get_resolution_dian(self, data_header_doc):
         # Falta preguntar si con un mismo número de resolución DIAN se puede generar consecutivos de facturas
         # notas de débto y crédito. 
-        # Ini Frank 16AMY19  
         # dian_sequence = int(self.env.user.partner_id.company_id.in_use_dian_sequence)
         # rec_dian_sequence = self.env['ir.sequence'].search([('id', '=', dian_sequence),('use_dian_control', '=', True),('active', '=', True)])
         # if not rec_dian_sequence:
@@ -185,7 +184,6 @@ class DianDocument(models.Model):
             rec_dian_sequence = self.env['ir.sequence'].search([('id', '=', rec_active_resolution.sequence_id.id)])
             # if not rec_active_resolution:
             #     raise ValidationError('No se puede generar documento para la DIAN porque no hay rango de resolucion DIAN activo.')
-            # Fin Frank 16AMY19 
             dict_resolution_dian['Prefix'] = rec_dian_sequence.prefix                               # Prefijo de número de factura
             dict_resolution_dian['InvoiceAuthorization'] = rec_active_resolution.resolution_number  # Número de resolución
             dict_resolution_dian['StartDate'] = rec_active_resolution.date_from                     # Fecha desde resolución
@@ -193,10 +191,8 @@ class DianDocument(models.Model):
             dict_resolution_dian['From'] = rec_active_resolution.number_from                        # Desde la secuencia
             dict_resolution_dian['To'] = rec_active_resolution.number_to                            # Hasta la secuencia
             dict_resolution_dian['TechnicalKey'] = rec_active_resolution.technical_key              # Clave técnica de la resolución de rango
-            # Frank 16MAY19 dict_resolution_dian['InvoiceID'] = rec_dian_sequence.next_by_id()                      # Codigo del documento
-            # Ini Frank 16AMY19
             dict_resolution_dian['InvoiceID'] = data_header_doc.number                              # Codigo del documento
-            # Fin Frank 16AMY19 
+            
         else:
             raise ValidationError("El número de resolución DIAN asociada a la factura no existe")
         return dict_resolution_dian
