@@ -11,6 +11,7 @@
                 <page name="dian" string="Configuracion DIAN">
                     <group>
                         <field name="trade_name"/>
+                        <field name="operation_type"/>
                         <field name="digital_certificate"/>
                         <field name="issuer_name"/>
                         <field name="serial_number"/>

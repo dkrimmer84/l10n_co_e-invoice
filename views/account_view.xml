@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+<!-- action_invoice_sent     -->
+    <data>
+
+        <record id="view_tax_form_inherit" model="ir.ui.view">
+            <field name="name">account.tax.form.inherit</field>
+            <field name="model">account.tax</field>
+            <field name="inherit_id" ref="account.view_tax_form"></field>
+            <field name="arch" type="xml">
+                <field name='active' position="before">
+                    <field name="tax_group_fe" required="1"/>
+                </field>                
+            </field>    
+        </record>
+
+
+    </data>
+</openerp>

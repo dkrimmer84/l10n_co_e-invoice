@@ -8,15 +8,18 @@
             <field name="model">account.invoice</field>
             <field name="inherit_id" ref="account.invoice_form"></field>
             <field name="arch" type="xml">
+                <field name="state" position="before">
+                    <field name="state_dian_document" invisible = "1"/>
+                    <button name="valitade_dian" states="open" string="Validar DIAN" type="object" attrs="{'invisible' : ['|',('state_dian_document', '=', 'exitoso')]}" groups="account.group_account_invoice"/>
+                </field>
                 <xpath expr="//notebook" position="inside">
-                    <page name="dian" string="DIAN" attrs="{'invisible' : [('diancode_id', '=', False)]}">
+                    <page name="dian" string="DIAN">
                         <group>
-                            <group>
-                                <field name="diancode_id" />
-                            </group>
-                            <group>
-                                <button type="object" name="action_invoice_dian_resend" string="Reenviar el documento DIAN por email"/>
-                            </group>
+                            <field name="diancode_id" />
+                            <field name="state_dian_document" />
+                            <field name="response_message_dian" />
+                            <field name="email_response" />
+                            <button type="object" name="action_invoice_dian_resend" string="Reenviar el documento DIAN por email" attrs="{'invisible' : [('state_dian_document', '!=', 'exitoso')]}"/>
                         </group>
                     </page>
                 </xpath>
@@ -33,7 +36,7 @@
             <field name="partner_to">${object.partner_id.id}</field>
             <field name="model_id" ref="account.model_account_invoice"/>
             <field name="auto_delete" eval="True"/>
-            <field name="report_template" ref="account_invoice_dian"/>
+            <field name="report_template" ref="account.account_invoices"/>
             <field name="report_name">${object.diancode_id.dian_code}</field>
             <field name="lang">${object.partner_id.lang}</field>
             <field name="body_html"><![CDATA[

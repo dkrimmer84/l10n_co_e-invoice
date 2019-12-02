@@ -106,7 +106,7 @@
     />
 
 
-    <record id="send_pending_dian_cron" model="ir.cron">
+<!--     <record id="send_pending_dian_cron" model="ir.cron">
         <field name="name">Enviar documentos al DIAN</field>
         <field name="model">dian.document</field>
         <field name="function">send_pending_dian</field>
@@ -127,6 +127,6 @@
         <field name="interval_number">1</field>
         <field name="numbercall">-1</field>
         <field name="active">False</field>
-    </record>
+    </record> -->
 
 </openerp>

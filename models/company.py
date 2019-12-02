@@ -25,3 +25,7 @@ class Company(models.Model):
     document_repository = fields.Char(string='Ruta de almacenamiento de archivos', required=True)
     in_use_dian_sequence = fields.Selection('_get_dian_sequence', 'Secuenciador DIAN a utilizar', required=True)
     certificate_key = fields.Char(string='Clave del certificado P12', required=True, default="")
+    operation_type = fields.Selection([('01','Combustible'),('02','Emisor es Autoretenedor'),('03','Excluidos y Exentos'),
+    ('04','Exportación'),('05','Generica'),('06','Generica con pago anticipado'),
+    ('07','Generica con periodo de facturacion'),('08','Consorcio'),('09','Servicios AIU'),('10','Estandar'),
+    ('11','Mandatos bienes'),('12','Mandatos Servicios')], string='Tipo de operación DIAN', required=True)
