@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+
+
     <record id="view_company_form_dian_extended" model="ir.ui.view">
         <field name="name">Datos de la compañía requeridos por la DIAN</field>
         <field name="model">res.company</field>
@@ -9,7 +11,9 @@
                 <page name="dian" string="Configuracion DIAN">
                     <group>
                         <field name="trade_name"/>
+                        <field name="operation_type"/>
                         <field name="digital_certificate"/>
+                        <field name="identificador_set_pruebas" />
                         <field name="issuer_name"/>
                         <field name="serial_number"/>
                         <field name="software_identification_code"/>
@@ -18,10 +22,13 @@
                         <field name="certificate_key"/>
                         <field name="seed_code"/>
                         <field name="document_repository"/>
+                        <field name="certificate"/>
+                        <field name="pem"/>
                         <field name="in_use_dian_sequence"/>
                     </group>
                 </page>
             </xpath>
         </field>
     </record>
+
 </odoo>

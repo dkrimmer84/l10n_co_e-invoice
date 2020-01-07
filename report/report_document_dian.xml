@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<odoo>
+<openerp>
+
+
     <template id="template_fe_dian_invoice" model="ir.ui.view">
         <field name="name">extension de secuenciador dian</field>
         <field name="model">dian.document</field>
         <field name="arch" type="xml">
+
         </field>
     </record>
-</odoo>
+
+
+</openerp>
