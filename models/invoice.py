@@ -268,7 +268,7 @@ class AccountInvoice(models.Model):
         if mensaje:
             raise ValidationError(mensaje)
 
-        super(AccountInvoice, self).action_invoice_open()
+        return super(AccountInvoice, self).action_invoice_open()
 
 
     @api.multi
