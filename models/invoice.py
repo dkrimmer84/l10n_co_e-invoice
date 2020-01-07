@@ -268,7 +268,7 @@ class AccountInvoice(models.Model):
         if mensaje:
             raise ValidationError(mensaje)
 
-        return rec
+        # return rec
 
 
     @api.multi
