@@ -639,7 +639,7 @@ class DianDocument(models.Model):
         dian_constants['SupplierCityCode'] = partner.xcity.code                                         # Municipio tabla 6.4.3 res.country.state.city
         dian_constants['SupplierCityName'] = partner.xcity.name                                         # Municipio tabla 6.4.3 res.country.state.city
         dian_constants['SupplierCountrySubentity'] = partner.state_id.name                              # Ciudad o departamento tabla 6.4.2 res.country.state
-        dian_constants['SupplierCountrySubentityCode'] = partner.state_id.code                          # Ciudad o departamento tabla 6.4.2 res.country.state
+        dian_constants['SupplierCountrySubentityCode'] = partner.xcity.code[0:2]                          # Ciudad o departamento tabla 6.4.2 res.country.state
         dian_constants['SupplierCountryCode'] = partner.country_id.code                                 # País tabla 6.4.1 res.country
         dian_constants['SupplierCountryName'] = partner.country_id.name                                 # País tabla 6.4.1 res.country
         dian_constants['SupplierLine'] = partner.street                                                 # Calle
@@ -702,7 +702,7 @@ class DianDocument(models.Model):
         data_constants_document['CustomerCityCode'] = data_header_doc.partner_id.xcity.code                 # Municipio tabla 6.4.3 res.country.state.city
         data_constants_document['CustomerCityName'] = data_header_doc.partner_id.xcity.name                 # Municipio tabla 6.4.3 res.country.state.city
         data_constants_document['CustomerCountrySubentity'] = data_header_doc.partner_id.state_id.name      # Ciudad o departamento tabla 6.4.2 res.country.state
-        data_constants_document['CustomerCountrySubentityCode'] = data_header_doc.partner_id.state_id.code  # Ciudad o departamento tabla 6.4.2 res.country.state
+        data_constants_document['CustomerCountrySubentityCode'] = data_header_doc.partner_id.xcity.code[0:2]  # Ciudad o departamento tabla 6.4.2 res.country.state
         data_constants_document['CustomerCountryCode'] = data_header_doc.partner_id.country_id.code         # País tabla 6.4.1 res.country
         data_constants_document['CustomerCountryName'] = data_header_doc.partner_id.country_id.name         # País tabla 6.4.1 res.country
         data_constants_document['CustomerAddressLine'] = data_header_doc.partner_id.street
