@@ -161,14 +161,14 @@ class DianDocument(models.Model):
     xml_send_query_dian = fields.Text(string='Contenido XML de envío de consulta de documento DIAN', readonly=True)
 
 
-    @api.multi
-    def generate_new_dian_document(self):
-        self.ensure_one()
-        self.resend = False
-        self.last_shipping = False
-        vals = {'document_id' : self.document_id.id, 'document_type' : self.document_type}
-        new_dian_document = self.create(vals)
-        return new_dian_document
+    # @api.multi
+    # def generate_new_dian_document(self):
+    #     self.ensure_one()
+    #     self.resend = False
+    #     self.last_shipping = False
+    #     vals = {'document_id' : self.document_id.id, 'document_type' : self.document_type}
+    #     new_dian_document = self.create(vals)
+    #     return new_dian_document
 
 
     @api.model
@@ -270,6 +270,15 @@ class DianDocument(models.Model):
         # print('response.content estado de documento', response.content)
         # print('response.status_code estado de documento', response.status_code)
         # print('--------------------------------------------------------------')
+
+        # Quitar
+        # data_header_doc.write({'diancode_id' : dian_document.id})
+        # dian_document.response_message_dian += '- Respuesta consulta estado del documento: Procesado correctamente \n'
+        # plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
+        # plantilla_correo.send_mail(dian_document.document_id.id, force_send = True)
+        # dian_document.date_email_send = fields.Datetime.now()
+        # dian_document.write({'state' : 'exitoso', 'resend' : False})
+        # Fin quitar
 
         return True
 
@@ -497,6 +506,12 @@ class DianDocument(models.Model):
             # print('response.content envio de documento', response.content)
             # print('response.status_code envio de documento', response.status_code)
             # print('--------------------------------------------------------------')
+
+            # Quitar
+            # doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+            # doc_send_dian.ZipKey = '1234567890'
+            # doc_send_dian.state = 'por_validar'
+            # Quitar fin
 
         return 
 

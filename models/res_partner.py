@@ -14,4 +14,4 @@ class ResPartner(models.Model):
                             ('ZZ','Nombre de la figura tributaria')
                     ],string="Tributo DIAN", required = True)
     fiscal_responsability_id = fields.Many2one('dian.fiscal.responsability', string="Responsabilidad fiscal", required = True)
-    #is_foreign = fields.Char('Is foreign')
+    # is_foreign = fields.Char('Is foreign')

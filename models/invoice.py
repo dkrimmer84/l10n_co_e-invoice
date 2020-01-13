@@ -247,7 +247,7 @@ class AccountInvoice(models.Model):
         rec_account_invoice_tax = self.env['account.invoice.tax'].search([('invoice_id', '=', self.id)])
         if rec_account_invoice_tax:
             for item_tax in rec_account_invoice_tax:
-                if item_tax.tax_id.tax_group_fe not in ('iva_fe','ica_fe','ico_fe'):
+                if item_tax.tax_id.tax_group_fe not in ('iva_fe','ica_fe','ico_fe','ret_fe'):
                     mensaje += '- La factura contiene impuestos que no están asociados al grupo de impuestos DIAN FE.' + '\n'
         data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', self.id)])
         if data_lines_doc:
@@ -275,6 +275,18 @@ class AccountInvoice(models.Model):
     def valitade_dian(self):
         document_dian = self.env['dian.document'].search([('document_id', '=', self.id)])
         if document_dian.state == ('por_notificar'):
+            document_dian.send_pending_dian(document_dian.id,document_dian.document_type)
+        if document_dian.state == 'rechazado':
+            document_dian.response_message_dian = ' '
+            document_dian.xml_response_dian = ' '
+            document_dian.xml_send_query_dian = ' '
+            document_dian.response_message_dian = ' '
+            document_dian.xml_document = ' '
+            document_dian.xml_file_name = ' '
+            document_dian.zip_file_name = ' '
+            document_dian.cufe = ' '
+            document_dian.date_document_dian = ' '
+            document_dian.write({'state' : 'por_notificar', 'resend' : False})
             document_dian.send_pending_dian(document_dian.id,document_dian.document_type)
         if document_dian.state == 'por_validar':
             document_dian.request_validating_dian(document_dian.id)

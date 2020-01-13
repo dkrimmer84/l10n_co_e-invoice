@@ -12,7 +12,7 @@
                 <field name="customer_name"/>
                 <field name="dian_code"/>
                 <field name="date_document_dian"/>
-                <field name="last_shipping"/>
+<!--                 <field name="last_shipping"/> -->
                 <field name="date_email_send"/>
                 <field name="email_response"/>
                 <field name="state"/>
@@ -25,11 +25,11 @@
         <field name="model">dian.document</field>
         <field name="arch" type="xml">
             <form create='false' delete='false' edit='false'>
-                <header>
+<!--                 <header>
                     <field name="resend" invisible="True"/>
                     <button name="generate_new_dian_document" string="Autorizar Reenvio" type="object" class="oe_highlight" attrs="{'invisible': [('resend', '=', False)]}" confirm="Desea autorizar un nuevo envio?"/>  
                     <field name="state" widget="statusbar"/>
-                </header>
+                </header> -->
                 <body>
                     <group>
                         <group>
@@ -76,7 +76,7 @@
                 <field name="dian_code"/>
                 <field name="date_document_dian"/>
                 <filter name="filter_por_notificar" string="Por notificar" domain="[('state','=','por_notificar')]"/>
-                <filter name="filter_error" string="Error" domain="[('state','=','error')]"/>
+<!--                 <filter name="filter_error" string="Error" domain="[('state','=','error')]"/> -->
                 <filter name="filter_por_validar" string="Por validar" domain="[('state','=','por_validar')]"/>
                 <filter name="filter_exitoso" string="Exitoso" domain="[('state','=','exitoso')]"/>
                 <filter name="filter_rechazado" string="Rechazado" domain="[('state','=','rechazado')]"/>
