@@ -6,4 +6,5 @@ from . import invoice
 from . import sequence
 from . import account
 from . import dian_fiscal_responsability
+from . import dian_tributes
 from . import res_partner

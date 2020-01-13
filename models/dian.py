@@ -661,7 +661,7 @@ class DianDocument(models.Model):
         dian_constants['SupplierRegistrationName'] = company.trade_name                                 # Razón Social: Obligatorio en caso de ser una persona jurídica. Razón social de la empresa
         dian_constants['schemeID'] = partner.dv                                                         # Digito verificador del NIT
         dian_constants['SupplierElectronicMail'] = partner.email
-        dian_constants['SupplierTaxLevelCode'] = partner.fiscal_responsability_id.code                  # tabla 6.2.4 Régimes fiscal (listname) y 6.2.7 Responsabilidades fiscales
+        dian_constants['SupplierTaxLevelCode'] = self._get_partner_fiscal_responsability_code(partner.id)                  # tabla 6.2.4 Régimes fiscal (listname) y 6.2.7 Responsabilidades fiscales
         dian_constants['Certificate'] = company.digital_certificate
         dian_constants['NitSinDV'] = partner.xidentification 
         dian_constants['CertificateKey'] = company.certificate_key 
@@ -721,7 +721,7 @@ class DianDocument(models.Model):
         data_constants_document['CustomerCountryCode'] = data_header_doc.partner_id.country_id.code         # País tabla 6.4.1 res.country
         data_constants_document['CustomerCountryName'] = data_header_doc.partner_id.country_id.name         # País tabla 6.4.1 res.country
         data_constants_document['CustomerAddressLine'] = data_header_doc.partner_id.street
-        data_constants_document['CustomerTaxLevelCode'] = data_header_doc.partner_id.fiscal_responsability_id.code
+        data_constants_document['CustomerTaxLevelCode'] = self._get_partner_fiscal_responsability_code(data_header_doc.partner_id.id)
         data_constants_document['CustomerRegistrationName'] = self._replace_character_especial(data_header_doc.partner_id.companyName)
         data_constants_document['CustomerEmail'] = data_header_doc.partner_id.email if data_header_doc.partner_id.email else ''
         data_constants_document['CustomerLine'] = data_header_doc.partner_id.street
@@ -767,6 +767,15 @@ class DianDocument(models.Model):
             constant = constant.replace('"','&quot;')
             constant = constant.replace("'",'&apos;')
         return constant
+
+
+    def _get_partner_fiscal_responsability_code(self,partner_id):
+        rec_partner = self.env['res.partner'].search([('id', '=', partner_id)])
+        fiscal_responsability_codes = ''
+        if rec_partner:
+            for fiscal_responsability in rec_partner.fiscal_responsability_ids:
+                fiscal_responsability_codes += ', ' + fiscal_responsability.code if fiscal_responsability_codes else fiscal_responsability.code
+        return fiscal_responsability_codes
 
 
     def _template_basic_data_fe_xml(self):
@@ -1848,6 +1857,8 @@ class DianDocument(models.Model):
         ILLinea = 0
         data_credit_note_line_xml = ''
         data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
+        ILTaxAmount = 0.00
+        InvoiceLineTaxSubtotal_xml = ''
         for data_line in data_lines_doc:
             ILLinea += 1
             ILInvoicedQuantity = self._complements_second_decimal(data_line.quantity)           # 13.1.1.9 - Cantidad: Cantidad del artículo solicitado. Número de unidades servidas/prestadas.
@@ -1858,6 +1869,8 @@ class DianDocument(models.Model):
             ILPriceAmount = self._complements_second_decimal(data_line.price_unit)              # Precio Unitario   
            
             # Valor del tributo
+            ILTaxAmount = 0.00
+            InvoiceLineTaxSubtotal_xml = ''
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
                 ILTaxAmount = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))
@@ -1896,6 +1909,8 @@ class DianDocument(models.Model):
             ILPriceAmount = self._complements_second_decimal(data_line.price_unit)              # Precio Unitario   
            
             # Valor del tributo
+            ILTaxAmount = 0.00
+            InvoiceLineTaxSubtotal_xml = ''
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
                 ILTaxAmount = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))
