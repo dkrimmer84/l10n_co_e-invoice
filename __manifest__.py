@@ -13,6 +13,7 @@
     'data': [
         'security/ir.model.access.csv',
         'data/dian_fiscal_responsability_data.xml',
+        'data/dian_tributes_data.xml',
         'data/sequence.xml',
         'views/dian_view.xml',
         'views/company_view.xml',

@@ -161,14 +161,14 @@ class DianDocument(models.Model):
     xml_send_query_dian = fields.Text(string='Contenido XML de envío de consulta de documento DIAN', readonly=True)
 
 
-    @api.multi
-    def generate_new_dian_document(self):
-        self.ensure_one()
-        self.resend = False
-        self.last_shipping = False
-        vals = {'document_id' : self.document_id.id, 'document_type' : self.document_type}
-        new_dian_document = self.create(vals)
-        return new_dian_document
+    # @api.multi
+    # def generate_new_dian_document(self):
+    #     self.ensure_one()
+    #     self.resend = False
+    #     self.last_shipping = False
+    #     vals = {'document_id' : self.document_id.id, 'document_type' : self.document_type}
+    #     new_dian_document = self.create(vals)
+    #     return new_dian_document
 
 
     @api.model
@@ -270,6 +270,15 @@ class DianDocument(models.Model):
         # print('response.content estado de documento', response.content)
         # print('response.status_code estado de documento', response.status_code)
         # print('--------------------------------------------------------------')
+
+        # Quitar
+        # data_header_doc.write({'diancode_id' : dian_document.id})
+        # dian_document.response_message_dian += '- Respuesta consulta estado del documento: Procesado correctamente \n'
+        # plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
+        # plantilla_correo.send_mail(dian_document.document_id.id, force_send = True)
+        # dian_document.date_email_send = fields.Datetime.now()
+        # dian_document.write({'state' : 'exitoso', 'resend' : False})
+        # Fin quitar
 
         return True
 
@@ -498,6 +507,12 @@ class DianDocument(models.Model):
             # print('response.status_code envio de documento', response.status_code)
             # print('--------------------------------------------------------------')
 
+            # Quitar
+            # doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+            # doc_send_dian.ZipKey = '1234567890'
+            # doc_send_dian.state = 'por_validar'
+            # Quitar fin
+
         return 
 
         # # GetNumberingRange 
@@ -639,14 +654,14 @@ class DianDocument(models.Model):
         dian_constants['SupplierCityCode'] = partner.xcity.code                                         # Municipio tabla 6.4.3 res.country.state.city
         dian_constants['SupplierCityName'] = partner.xcity.name                                         # Municipio tabla 6.4.3 res.country.state.city
         dian_constants['SupplierCountrySubentity'] = partner.state_id.name                              # Ciudad o departamento tabla 6.4.2 res.country.state
-        dian_constants['SupplierCountrySubentityCode'] = partner.state_id.code                          # Ciudad o departamento tabla 6.4.2 res.country.state
+        dian_constants['SupplierCountrySubentityCode'] = partner.xcity.code[0:2]                          # Ciudad o departamento tabla 6.4.2 res.country.state
         dian_constants['SupplierCountryCode'] = partner.country_id.code                                 # País tabla 6.4.1 res.country
         dian_constants['SupplierCountryName'] = partner.country_id.name                                 # País tabla 6.4.1 res.country
         dian_constants['SupplierLine'] = partner.street                                                 # Calle
         dian_constants['SupplierRegistrationName'] = company.trade_name                                 # Razón Social: Obligatorio en caso de ser una persona jurídica. Razón social de la empresa
         dian_constants['schemeID'] = partner.dv                                                         # Digito verificador del NIT
         dian_constants['SupplierElectronicMail'] = partner.email
-        dian_constants['SupplierTaxLevelCode'] = partner.fiscal_responsability_id.code                  # tabla 6.2.4 Régimes fiscal (listname) y 6.2.7 Responsabilidades fiscales
+        dian_constants['SupplierTaxLevelCode'] = self._get_partner_fiscal_responsability_code(partner.id)                  # tabla 6.2.4 Régimes fiscal (listname) y 6.2.7 Responsabilidades fiscales
         dian_constants['Certificate'] = company.digital_certificate
         dian_constants['NitSinDV'] = partner.xidentification 
         dian_constants['CertificateKey'] = company.certificate_key 
@@ -702,11 +717,11 @@ class DianDocument(models.Model):
         data_constants_document['CustomerCityCode'] = data_header_doc.partner_id.xcity.code                 # Municipio tabla 6.4.3 res.country.state.city
         data_constants_document['CustomerCityName'] = data_header_doc.partner_id.xcity.name                 # Municipio tabla 6.4.3 res.country.state.city
         data_constants_document['CustomerCountrySubentity'] = data_header_doc.partner_id.state_id.name      # Ciudad o departamento tabla 6.4.2 res.country.state
-        data_constants_document['CustomerCountrySubentityCode'] = data_header_doc.partner_id.state_id.code  # Ciudad o departamento tabla 6.4.2 res.country.state
+        data_constants_document['CustomerCountrySubentityCode'] = data_header_doc.partner_id.xcity.code[0:2]  # Ciudad o departamento tabla 6.4.2 res.country.state
         data_constants_document['CustomerCountryCode'] = data_header_doc.partner_id.country_id.code         # País tabla 6.4.1 res.country
         data_constants_document['CustomerCountryName'] = data_header_doc.partner_id.country_id.name         # País tabla 6.4.1 res.country
         data_constants_document['CustomerAddressLine'] = data_header_doc.partner_id.street
-        data_constants_document['CustomerTaxLevelCode'] = data_header_doc.partner_id.fiscal_responsability_id.code
+        data_constants_document['CustomerTaxLevelCode'] = self._get_partner_fiscal_responsability_code(data_header_doc.partner_id.id)
         data_constants_document['CustomerRegistrationName'] = self._replace_character_especial(data_header_doc.partner_id.companyName)
         data_constants_document['CustomerEmail'] = data_header_doc.partner_id.email if data_header_doc.partner_id.email else ''
         data_constants_document['CustomerLine'] = data_header_doc.partner_id.street
@@ -752,6 +767,15 @@ class DianDocument(models.Model):
             constant = constant.replace('"','&quot;')
             constant = constant.replace("'",'&apos;')
         return constant
+
+
+    def _get_partner_fiscal_responsability_code(self,partner_id):
+        rec_partner = self.env['res.partner'].search([('id', '=', partner_id)])
+        fiscal_responsability_codes = ''
+        if rec_partner:
+            for fiscal_responsability in rec_partner.fiscal_responsability_ids:
+                fiscal_responsability_codes += ', ' + fiscal_responsability.code if fiscal_responsability_codes else fiscal_responsability.code
+        return fiscal_responsability_codes
 
 
     def _template_basic_data_fe_xml(self):
@@ -1833,6 +1857,8 @@ class DianDocument(models.Model):
         ILLinea = 0
         data_credit_note_line_xml = ''
         data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
+        ILTaxAmount = 0.00
+        InvoiceLineTaxSubtotal_xml = ''
         for data_line in data_lines_doc:
             ILLinea += 1
             ILInvoicedQuantity = self._complements_second_decimal(data_line.quantity)           # 13.1.1.9 - Cantidad: Cantidad del artículo solicitado. Número de unidades servidas/prestadas.
@@ -1843,6 +1869,8 @@ class DianDocument(models.Model):
             ILPriceAmount = self._complements_second_decimal(data_line.price_unit)              # Precio Unitario   
            
             # Valor del tributo
+            ILTaxAmount = 0.00
+            InvoiceLineTaxSubtotal_xml = ''
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
                 ILTaxAmount = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))
@@ -1881,6 +1909,8 @@ class DianDocument(models.Model):
             ILPriceAmount = self._complements_second_decimal(data_line.price_unit)              # Precio Unitario   
            
             # Valor del tributo
+            ILTaxAmount = 0.00
+            InvoiceLineTaxSubtotal_xml = ''
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
                 ILTaxAmount = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))

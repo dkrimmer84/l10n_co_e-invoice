@@ -13,7 +13,7 @@
                 </field>
                 <field name="state" position="before">
                     <field name="state_dian_document" invisible = "1"/>
-                    <button name="valitade_dian" states="open" string="Validar DIAN" type="object" attrs="{'invisible' : ['|',('state_dian_document', '=', 'exitoso')]}" groups="account.group_account_invoice"/>
+                    <button name="valitade_dian" states="open" string="Validar DIAN" type="object" attrs="{'invisible' : ['|','|',('state_dian_document', '=', 'exitoso'),('type', '!=', 'out_invoice')]}" groups="account.group_account_invoice"/>
                 </field>
                 <xpath expr="//button[5]" position="before">
                     <field name="is_debit_note" invisible = "1"/>
