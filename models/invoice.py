@@ -192,7 +192,11 @@ class AccountInvoice(models.Model):
                 mensaje += '- Su empresa no tiene asociada un tipo de documento.' + '\n'
             if not partner.state_id:
                 mensaje += '- Su empresa no tiene asociada un estado.' + '\n'
+<<<<<<< HEAD
             if not partner.tribute_id:
+=======
+            if not partner.tributes_ids:
+>>>>>>> f8f9dd926e74a8504ceb16f9290a21465d22a9ea
                 mensaje += '- Su empresa no tiene asociada un tributo.' + '\n' 
             if not partner.fiscal_responsability_ids:
                 mensaje += '- Su empresa no tiene asociada una responsabilidad fiscal.' + '\n' 
@@ -233,7 +237,11 @@ class AccountInvoice(models.Model):
                 mensaje += '- El cliente no tiene asociada un municipio.' + '\n'
             if not self.partner_id.street:
                 mensaje += '- El cliente no tiene asociada una dirección.' + '\n'
+<<<<<<< HEAD
             if not partner.tribute_id:
+=======
+            if not partner.tributes_ids:
+>>>>>>> f8f9dd926e74a8504ceb16f9290a21465d22a9ea
                 mensaje += '- El cliente no tiene asociada un tributo de los indicados en la tabla 6.2.2 Tributos indicado en la tabla 6.2.2 Tributos.' + '\n' 
             if not self.partner_id.email:
                 mensaje += '- El cliente no tiene definido un email.' + '\n'
