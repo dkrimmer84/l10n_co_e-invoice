@@ -13,7 +13,7 @@
                 </field>
                 <field name="state" position="before">
                     <field name="state_dian_document" invisible = "1"/>
-                    <button name="valitade_dian" states="open" string="Validar DIAN" type="object" attrs="{'invisible' : ['|','|',('state_dian_document', '=', 'exitoso'),('type', '!=', 'out_invoice')]}" groups="account.group_account_invoice"/>
+                    <button name="valitade_dian" states="open" string="Validar DIAN" type="object" attrs="{'invisible' : ['|','|',('state_dian_document', '=', 'exitoso'),('type', '!=', 'out_invoice')]}" groups="account.group_account_invoice" class="oe_highlight"/>
                 </field>
                 <xpath expr="//button[5]" position="before">
                     <field name="is_debit_note" invisible = "1"/>
@@ -33,14 +33,17 @@
                     <attribute name="required">True</attribute>
                 </xpath>
 
-                <xpath expr="//button[5]" position="attributes">
+<!--                 <xpath expr="//button[5]" position="attributes">
                     <attribute name="attrs">{'req': ['|','|',('type', '=', 'out_refund'), ('state', 'not in', ('open','in_payment','paid')),('is_debit_note', '=', True)]}</attribute>
-                </xpath>
+                </xpath> -->
 
 
                 <xpath expr="//notebook" position="inside">
                     <page name="dian" string="DIAN">
-                        <group>
+                        <div class="alert alert-info" role="alert" style="margin-top:10px;" attrs="{'invisible': [('diancode_id','!=',False)]}">
+                            Presione en el boton <b>Validar DIAN</b> para enviar la factura
+                        </div>
+                        <group attrs="{'invisible' : [('diancode_id', '=', False)]}">
                             <field name="diancode_id" />
                             <field name="QR_code" widget="image"/>
                             <field name="cufe"/>

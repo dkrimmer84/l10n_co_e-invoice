@@ -7,6 +7,6 @@ class ResPartner(models.Model):
     _inherit = 'res.partner'
     _name = 'res.partner'
 
-    tributes_ids = fields.Many2many('dian.tributes', string="Tributos", required = True)
+    tribute_id = fields.Many2one('dian.tributes', string="Tributos", required = True)
     fiscal_responsability_ids = fields.Many2many('dian.fiscal.responsability', string="Responsabilidad fiscal", required = True)
     #is_foreign = fields.Char('Is foreign')

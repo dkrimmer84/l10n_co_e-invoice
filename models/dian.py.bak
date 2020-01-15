@@ -1513,7 +1513,7 @@ class DianDocument(models.Model):
         return template_tax_data_xml
 
 
-
+    # Nuevo ini
     def _template_line_data_xml(self):
         template_line_data_xml = """
     <cac:InvoiceLine>

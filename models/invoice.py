@@ -83,6 +83,7 @@ class AccountInvoice(models.Model):
             'date_invoice' : date.today(),
             'payment_term_id' : self.payment_term_id.id,
             'date' : date.today(),
+            'date_due' : self.date_due,
             'user_id' : self.env.uid,
             'currency_id' : self.currency_id.id,
             'commercial_partner_id' : self.commercial_partner_id.id,
@@ -191,7 +192,7 @@ class AccountInvoice(models.Model):
                 mensaje += '- Su empresa no tiene asociada un tipo de documento.' + '\n'
             if not partner.state_id:
                 mensaje += '- Su empresa no tiene asociada un estado.' + '\n'
-            if not partner.tributes:
+            if not partner.tribute_id:
                 mensaje += '- Su empresa no tiene asociada un tributo.' + '\n' 
             if not partner.fiscal_responsability_ids:
                 mensaje += '- Su empresa no tiene asociada una responsabilidad fiscal.' + '\n' 
@@ -232,7 +233,7 @@ class AccountInvoice(models.Model):
                 mensaje += '- El cliente no tiene asociada un municipio.' + '\n'
             if not self.partner_id.street:
                 mensaje += '- El cliente no tiene asociada una dirección.' + '\n'
-            if not partner.tributes:
+            if not partner.tribute_id:
                 mensaje += '- El cliente no tiene asociada un tributo de los indicados en la tabla 6.2.2 Tributos indicado en la tabla 6.2.2 Tributos.' + '\n' 
             if not self.partner_id.email:
                 mensaje += '- El cliente no tiene definido un email.' + '\n'
@@ -283,6 +284,16 @@ class AccountInvoice(models.Model):
             document_dian.request_validating_dian(document_dian.id)
 
 
+    @api.model
+    def create(self, vals):
+        if 'type' in vals:
+            if vals['type'] == 'out_refund':
+                if 'refund_invoice_id' in vals and 'payment_term_id' in vals:
+                    rec_account_invoice = self.env['account.invoice'].search([('id', '=', vals['refund_invoice_id'])])
+                    vals['payment_term_id'] = rec_account_invoice.payment_term_id.id
+        return super(AccountInvoice, self).create(vals)
+
+ 
 class AccountInvoiceReport(models.Model):
     _inherit = "account.invoice.report"
 
