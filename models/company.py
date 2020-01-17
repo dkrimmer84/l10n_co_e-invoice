@@ -33,3 +33,4 @@ class Company(models.Model):
     ('11','Mandatos bienes'),('12','Mandatos Servicios')], string='Tipo de operación DIAN', required=True)
     pem = fields.Char(string="Nombre del archivo PEM del certificado", required=True, default="")
     certificate = fields.Char(string="Nombre del archivo del certificado", required=True, default="")
+    production = fields.Boolean(string='Pase a producción', default=0)

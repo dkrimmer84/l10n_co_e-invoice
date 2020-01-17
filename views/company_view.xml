@@ -25,6 +25,7 @@
                         <field name="certificate"/>
                         <field name="pem"/>
                         <field name="in_use_dian_sequence"/>
+                        <field name="production"/>
                     </group>
                 </page>
             </xpath>

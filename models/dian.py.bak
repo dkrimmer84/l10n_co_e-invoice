@@ -694,7 +694,10 @@ class DianDocument(models.Model):
         data_constants_document['LineExtensionAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed)   # Total Importe bruto antes de impuestos: Total importe bruto, suma de los importes brutos de las líneas de la factura.
         # Valor bruto más tributos
         data_constants_document['TotalTaxInclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_without_wh_tax) 
-        data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
+        #data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed if data_header_doc.amount_tax != 0.00 else 0.00)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
+        
+        data_constants_document['TaxExclusiveAmount'] = self._caculate_TaxExclusiveAmount(data_header_doc.amount_tax, data_header_doc.id)
+        
         #data_constants_document['TotalTaxInclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_total) 
         #data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
         # Valor Bruto más tributos - Valor del Descuento Total + Valor del Cargo Total - Valor del Anticipo Total
@@ -779,6 +782,15 @@ class DianDocument(models.Model):
             for fiscal_responsability in rec_partner.fiscal_responsability_ids:
                 fiscal_responsability_codes += ';' + fiscal_responsability.code if fiscal_responsability_codes else fiscal_responsability.code
         return fiscal_responsability_codes
+
+
+    def _caculate_TaxExclusiveAmount(self, amount_tax, invoice_id):
+        amount_untaxed = 0.00
+        data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
+        for data_line_doc in data_lines_doc:
+            if data_line_doc.invoice_line_tax_ids:
+                amount_untaxed += data_line_doc.price_subtotal
+        return amount_untaxed
 
 
     def _template_basic_data_fe_xml(self):
@@ -1513,7 +1525,7 @@ class DianDocument(models.Model):
         return template_tax_data_xml
 
 
-    # Nuevo ini
+
     def _template_line_data_xml(self):
         template_line_data_xml = """
     <cac:InvoiceLine>

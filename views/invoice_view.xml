@@ -13,7 +13,7 @@
                 </field>
                 <field name="state" position="before">
                     <field name="state_dian_document" invisible = "1"/>
-                    <button name="valitade_dian" states="open" string="Validar DIAN" type="object" attrs="{'invisible' : ['|','|',('state_dian_document', '=', 'exitoso'),('type', '!=', 'out_invoice')]}" groups="account.group_account_invoice" class="oe_highlight"/>
+                    <button name="valitade_dian" states="open,paid" string="Validar DIAN" type="object" attrs="{'invisible' : ['|','|',('state_dian_document', '=', 'exitoso'),('type', 'not in', ('out_invoice','out_refund'))]}" groups="account.group_account_invoice" class="oe_highlight"/>
                 </field>
                 <xpath expr="//button[5]" position="before">
                     <field name="is_debit_note" invisible = "1"/>
@@ -51,13 +51,13 @@
                             <field name="response_message_dian" />
                             <field name="email_response" />
                             <field name="type" invisible = "1"/>
-                            <button type="object" name="action_invoice_dian_resend" string="Reenviar el documento DIAN por email" attrs="{'invisible' : ['|','|',('state_dian_document', '!=', 'exitoso'),('is_debit_note', '=', True),('type', '=', 'out_refund')]}"/>
+                            <button type="object" name="action_invoice_dian_resend" string="Reenviar el documento DIAN por email" attrs="{'invisible' : ['|',('email_response', '=', 'accepted')]}"/>
                         </group>
                     </page>
                 </xpath>
             </field>
     </record>
-
+<!-- attrs="{'invisible' : ['|','|',('state_dian_document', '!=', 'exitoso'),('is_debit_note', '=', True),('type', '=', 'out_refund')]}" -->
 
         <!--Email dian template -->
         <record id="email_template_edi_invoice_dian" model="mail.template">

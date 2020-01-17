@@ -192,6 +192,9 @@ class DianDocument(models.Model):
 
     @api.model
     def request_validating_dian(self, document_id):
+        user = self.env['res.users'].search([('id', '=', self.env.uid)])
+        company = self.env['res.company'].search([('id', '=', user.company_id.id)])
+    
         dian_document = self.env['dian.document'].search([('id', '=', document_id)])
         data_header_doc = self.env['account.invoice'].search([('id', '=', dian_document.document_id.id)])
         dian_constants = self._get_dian_constants(data_header_doc)
@@ -233,10 +236,16 @@ class DianDocument(models.Model):
         data_xml_send = data_xml_send.replace('<ds:SignatureValue/>','<ds:SignatureValue>%s</ds:SignatureValue>' % SignatureValue)
         #   Contruye XML de envío de petición
         headers = {'content-type': 'application/soap+xml'}
-        try:
-             response = requests.post(server_url['HABILITACION_VP'],data=data_xml_send,headers=headers)
-        except:
-             raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+        if company.production:
+            try:
+                 response = requests.post(server_url['PRODUCCION_VP'],data=data_xml_send,headers=headers)
+            except:
+                 raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+        else:
+            try:
+                 response = requests.post(server_url['HABILITACION_VP'],data=data_xml_send,headers=headers)
+            except:
+                 raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
         #   Respuesta de petición
         if response.status_code != 200: # Respuesta de envío no exitosa
             if response.status_code == 500:
@@ -248,10 +257,12 @@ class DianDocument(models.Model):
         if response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode'] == '00':
             data_header_doc.write({'diancode_id' : dian_document.id})
             dian_document.response_message_dian += '- Respuesta consulta estado del documento: Procesado correctamente \n'
-            plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-            plantilla_correo.send_mail(dian_document.document_id.id, force_send = True)
-            dian_document.date_email_send = fields.Datetime.now()
             dian_document.write({'state' : 'exitoso', 'resend' : False})
+            if dian_document.document_type == 'f':
+                plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
+                if plantilla_correo:
+                    plantilla_correo.send_mail(dian_document.document_id.id, force_send = True)
+                    dian_document.date_email_send = fields.Datetime.now()
         else:
             data_header_doc.write({'diancode_id' : dian_document.id})
             if response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode'] == '90':
@@ -287,7 +298,6 @@ class DianDocument(models.Model):
     def send_pending_dian(self, document_id, document_type):
         user = self.env['res.users'].search([('id', '=', self.env.uid)])
         company = self.env['res.company'].search([('id', '=', user.company_id.id)])
-
         
         data_lines_xml = ''
         data_credit_lines_xml = ''
@@ -431,14 +441,21 @@ class DianDocument(models.Model):
             #testSetId = '6f9f8512-fc07-4b19-b3b5-0ac7f966d0fc'
             # FERRETERIA PG
             testSetId = company.identificador_set_pruebas
-            # Preparación del envío de la factura a través del método SendTestSetAsync
-            template_SendTestSetAsyncsend_xml = self._template_SendTestSetAsyncsend_xml()
             identifierSecurityToken = uuid.uuid4()
             identifierTo = uuid.uuid4()
-            #   Generar xml de envío del método SendTestSetAsync
-            data_xml_send = self._generate_SendTestSetAsync_send_xml(template_SendTestSetAsyncsend_xml, fileName, 
-                            Document, Created, testSetId, data_constants_document['identifier'], Expires, 
-                            dian_constants['Certificate'], identifierSecurityToken, identifierTo)
+            
+            # Preparación del envío de la factura 
+            if company.production:
+                template_SendBillAsyncsend_xml = self._template_SendBillAsyncsend_xml()
+                data_xml_send = self._generate_SendBillAsync_send_xml(template_SendBillAsyncsend_xml, fileName, 
+                                Document, Created, testSetId, data_constants_document['identifier'], Expires, 
+                                dian_constants['Certificate'], identifierSecurityToken, identifierTo)
+            else:
+                template_SendTestSetAsyncsend_xml = self._template_SendTestSetAsyncsend_xml()
+                data_xml_send = self._generate_SendTestSetAsync_send_xml(template_SendTestSetAsyncsend_xml, fileName, 
+                                Document, Created, testSetId, data_constants_document['identifier'], Expires, 
+                                dian_constants['Certificate'], identifierSecurityToken, identifierTo)
+
             parser = etree.XMLParser(remove_blank_text=True)
             data_xml_send = etree.tostring(etree.XML(data_xml_send, parser=parser))
             data_xml_send = data_xml_send.decode()
@@ -465,10 +482,16 @@ class DianDocument(models.Model):
             data_xml_send = data_xml_send.replace('<ds:SignatureValue/>','<ds:SignatureValue>%s</ds:SignatureValue>' % SignatureValue)
             #   Contruye XML de envío de petición
             headers = {'content-type': 'application/soap+xml'}
-            try:
-                 response = requests.post(server_url['HABILITACION_VP'],data=data_xml_send,headers=headers)
-            except:
-                 raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+            if company.production:
+                try:
+                    response = requests.post(server_url['PRODUCCION_VP'],data=data_xml_send,headers=headers)
+                except:
+                    raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+            else:
+                try:
+                    response = requests.post(server_url['HABILITACION_VP'],data=data_xml_send,headers=headers)
+                except:
+                    raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
             #   Respuesta de petición
             if response.status_code != 200: # Respuesta de envío no exitosa
                 if response.status_code == 500:
@@ -478,27 +501,50 @@ class DianDocument(models.Model):
             #   Procesa respuesta DIAN 
             response_dict = xmltodict.parse(response.content)
             dict_mensaje = {}
-            dict_mensaje = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']
-            if '@i:nil' in dict_mensaje:
-                if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['@i:nil'] == 'true':
-                    doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
-                    doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
-                    doc_send_dian.state = 'por_validar'
+            if company.production:
+                dict_mensaje = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ErrorMessageList']
+                if '@i:nil' in dict_mensaje:
+                    if response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ErrorMessageList']['@i:nil'] == 'true':
+                        doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ZipKey']
+                        doc_send_dian.state = 'por_validar'
+                    else:
+                        doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ZipKey']
+                        doc_send_dian.state = 'por_notificar'
+                elif 'i:nil' in dict_mensaje:
+                    if response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ErrorMessageList']['i:nil'] == 'true':
+                        doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ZipKey']
+                        doc_send_dian.state = 'por_validar'
+                    else:
+                        doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                        doc_send_dian.state = 'por_notificar'
                 else:
-                    doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
-                    doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
-                    doc_send_dian.state = 'por_notificar'
-            elif 'i:nil' in dict_mensaje:
-                if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['i:nil'] == 'true':
-                    doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
-                    doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
-                    doc_send_dian.state = 'por_validar'
-                else:
-                    doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
-                    doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
-                    doc_send_dian.state = 'por_notificar'
+                    raise ValidationError('Mensaje de respuesta cambió en su estrcutura xml')
             else:
-                raise ValidationError('Mensaje de respuesta cambió en su estrcutura xml')
+                dict_mensaje = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']
+                if '@i:nil' in dict_mensaje:
+                    if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['@i:nil'] == 'true':
+                        doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                        doc_send_dian.state = 'por_validar'
+                    else:
+                        doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                        doc_send_dian.state = 'por_notificar'
+                elif 'i:nil' in dict_mensaje:
+                    if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['i:nil'] == 'true':
+                        doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                        doc_send_dian.state = 'por_validar'
+                    else:
+                        doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                        doc_send_dian.state = 'por_notificar'
+                else:
+                    raise ValidationError('Mensaje de respuesta cambió en su estrcutura xml')
             # Generar código QR
             doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
 
@@ -506,12 +552,6 @@ class DianDocument(models.Model):
             # print('response.content envio de documento', response.content)
             # print('response.status_code envio de documento', response.status_code)
             # print('--------------------------------------------------------------')
-
-            # Quitar
-            # doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
-            # doc_send_dian.ZipKey = '1234567890'
-            # doc_send_dian.state = 'por_validar'
-            # Quitar fin
 
         return 
 
@@ -645,7 +685,7 @@ class DianDocument(models.Model):
         dian_constants['UBLVersionID'] = 'UBL 2.1'                                                      # Versión base de UBL usada. Debe marcar UBL 2.0
         dian_constants['ProfileID'] = 'DIAN 2.1'                                                        # Versión del Formato: Indicar versión del documento. Debe usarse "DIAN 1.0"
         dian_constants['CustomizationID'] = company.operation_type  
-        dian_constants['ProfileExecutionID'] = 2                                                        # 1 = produccción 2 = prueba
+        dian_constants['ProfileExecutionID'] = 1 if company.production else 2                                                       # 1 = produccción 2 = prueba
         dian_constants['SupplierAdditionalAccountID'] = '1' if partner.is_company else '2'              # Persona natural o jurídica (persona natural, jurídica, gran contribuyente, otros)
         dian_constants['SupplierID'] = partner.xidentification if partner.xidentification else ''       # Identificador fiscal: En Colombia, el NIT
         dian_constants['SupplierSchemeID'] = partner.doctype
@@ -779,6 +819,15 @@ class DianDocument(models.Model):
             for fiscal_responsability in rec_partner.fiscal_responsability_ids:
                 fiscal_responsability_codes += ';' + fiscal_responsability.code if fiscal_responsability_codes else fiscal_responsability.code
         return fiscal_responsability_codes
+
+
+    def _caculate_TaxExclusiveAmount(self, amount_tax, invoice_id):
+        amount_untaxed = 0.00
+        data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
+        for data_line_doc in data_lines_doc:
+            if data_line_doc.invoice_line_tax_ids:
+                amount_untaxed += data_line_doc.price_subtotal
+        return amount_untaxed
 
 
     def _template_basic_data_fe_xml(self):
@@ -1874,6 +1923,10 @@ class DianDocument(models.Model):
            
             # Valor del tributo
             ILTaxAmount = 0.00
+            ILTaxableAmount =  0.00
+            ILPercent  =  0.00
+            ILID = ''           
+            ILName = ''
             InvoiceLineTaxSubtotal_xml = ''
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
@@ -1914,6 +1967,11 @@ class DianDocument(models.Model):
            
             # Valor del tributo
             ILTaxAmount = 0.00
+            ILTaxAmount = 0.00
+            ILTaxableAmount =  0.00
+            ILPercent  =  0.00
+            ILID = ''           
+            ILName = ''
             InvoiceLineTaxSubtotal_xml = ''
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
@@ -2365,6 +2423,72 @@ class DianDocument(models.Model):
 
     @api.model
     def _generate_SendTestSetAsync_send_xml(self, template_send_data_xml, fileName, contentFile, Created, 
+        testSetId, identifier, Expires, Certificate, identifierSecurityToken, identifierTo):
+        data_send_xml = template_send_data_xml % {
+                        'fileName' : fileName,
+                        'contentFile' : contentFile,
+                        'testSetId' : testSetId,
+                        'identifier' : identifier,
+                        'Created' : Created,
+                        'Expires' : Expires,
+                        'Certificate' : Certificate,
+                        'identifierSecurityToken' : identifierSecurityToken,
+                        'identifierTo' : identifierTo,
+                        }
+        return data_send_xml
+
+
+    def _template_SendBillAsyncsend_xml(self):
+        template_SendBillAsyncsend_xml = """
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia">
+    <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+        <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
+            <wsu:Timestamp wsu:Id="TS-%(identifier)s">
+                <wsu:Created>%(Created)s</wsu:Created>
+                <wsu:Expires>%(Expires)s</wsu:Expires>
+            </wsu:Timestamp>
+            <wsse:BinarySecurityToken EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3" wsu:Id="BAKENDEVS-%(identifierSecurityToken)s">%(Certificate)s</wsse:BinarySecurityToken>
+            <ds:Signature Id="SIG-%(identifier)s" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                <ds:SignedInfo>
+                    <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+                        <ec:InclusiveNamespaces PrefixList="wsa soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+                    </ds:CanonicalizationMethod>
+                    <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+                    <ds:Reference URI="#ID-%(identifierTo)s">
+                        <ds:Transforms>
+                            <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+                                <ec:InclusiveNamespaces PrefixList="soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+                            </ds:Transform>
+                        </ds:Transforms>
+                        <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                        <ds:DigestValue></ds:DigestValue>
+                    </ds:Reference>
+                </ds:SignedInfo>
+                <ds:SignatureValue></ds:SignatureValue>
+                <ds:KeyInfo Id="KI-%(identifier)s">
+                    <wsse:SecurityTokenReference wsu:Id="STR-%(identifier)s">
+                        <wsse:Reference URI="#BAKENDEVS-%(identifierSecurityToken)s" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3"/>
+                    </wsse:SecurityTokenReference>
+                </ds:KeyInfo>
+            </ds:Signature>
+        </wsse:Security>
+        <wsa:Action>http://wcf.dian.colombia/IWcfDianCustomerServices/SendTestSetAsync</wsa:Action>
+        <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
+    </soap:Header>
+    <soap:Body>
+        <wcf:SendBillAsync>
+            <wcf:fileName>%(fileName)s</wcf:fileName>
+            <wcf:contentFile>%(contentFile)s</wcf:contentFile>
+            <wcf:testSetId>%(testSetId)s</wcf:testSetId>
+        </wcf:SendBillAsync>
+    </soap:Body>
+</soap:Envelope>
+"""
+        return template_SendBillAsyncsend_xml
+
+
+    @api.model
+    def _generate_SendBillAsync_send_xml(self, template_send_data_xml, fileName, contentFile, Created, 
         testSetId, identifier, Expires, Certificate, identifierSecurityToken, identifierTo):
         data_send_xml = template_send_data_xml % {
                         'fileName' : fileName,
