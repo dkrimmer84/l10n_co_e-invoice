@@ -27,6 +27,13 @@
                         <field name="in_use_dian_sequence"/>
                         <field name="production"/>
                     </group>
+                    <group>
+                        <button name="query_numbering_range" string="Consulta rango numeración DIAN" type="object"/>
+                        <newline />
+                        <field name="xml_response_numbering_range"/>
+                    </group>
+
+
                 </page>
             </xpath>
         </field>

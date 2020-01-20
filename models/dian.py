@@ -173,7 +173,8 @@ class DianDocument(models.Model):
 
     @api.model
     def _get_resolution_dian(self, data_header_doc):
-        rec_active_resolution = self.env['ir.sequence.dian_resolution'].search([('resolution_number', '=', data_header_doc.resolution_number)])
+        #rec_active_resolution = self.env['ir.sequence.dian_resolution'].search([('resolution_number', '=', data_header_doc.resolution_number)])
+        rec_active_resolution = data_header_doc.journal_id.sequence_id.dian_resolution_ids.filtered(lambda r: r.resolution_number == data_header_doc.resolution_number)
         dict_resolution_dian = {}
         if rec_active_resolution:
             rec_dian_sequence = self.env['ir.sequence'].search([('id', '=', rec_active_resolution.sequence_id.id)])
@@ -246,6 +247,9 @@ class DianDocument(models.Model):
                  response = requests.post(server_url['HABILITACION_VP'],data=data_xml_send,headers=headers)
             except:
                  raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+        print('------------------------------------------------------')
+        print('response.content ', response.content)
+        print('------------------------------------------------------')
         #   Respuesta de petición
         if response.status_code != 200: # Respuesta de envío no exitosa
             if response.status_code == 500:
@@ -258,11 +262,10 @@ class DianDocument(models.Model):
             data_header_doc.write({'diancode_id' : dian_document.id})
             dian_document.response_message_dian += '- Respuesta consulta estado del documento: Procesado correctamente \n'
             dian_document.write({'state' : 'exitoso', 'resend' : False})
-            if dian_document.document_type == 'f':
-                plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-                if plantilla_correo:
-                    plantilla_correo.send_mail(dian_document.document_id.id, force_send = True)
-                    dian_document.date_email_send = fields.Datetime.now()
+            plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
+            if plantilla_correo:
+                plantilla_correo.send_mail(dian_document.document_id.id, force_send = True)
+                dian_document.date_email_send = fields.Datetime.now()
         else:
             data_header_doc.write({'diancode_id' : dian_document.id})
             if response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode'] == '90':
@@ -276,21 +279,6 @@ class DianDocument(models.Model):
                 dian_document.write({'state' : 'por_validar', 'resend' : False})
             dian_document.xml_response_dian = response.content
             dian_document.xml_send_query_dian = data_xml_send
-
-        # print('--------------------------------------------------------------')
-        # print('response.content estado de documento', response.content)
-        # print('response.status_code estado de documento', response.status_code)
-        # print('--------------------------------------------------------------')
-
-        # Quitar
-        # data_header_doc.write({'diancode_id' : dian_document.id})
-        # dian_document.response_message_dian += '- Respuesta consulta estado del documento: Procesado correctamente \n'
-        # plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-        # plantilla_correo.send_mail(dian_document.document_id.id, force_send = True)
-        # dian_document.date_email_send = fields.Datetime.now()
-        # dian_document.write({'state' : 'exitoso', 'resend' : False})
-        # Fin quitar
-
         return True
 
 
@@ -298,7 +286,6 @@ class DianDocument(models.Model):
     def send_pending_dian(self, document_id, document_type):
         user = self.env['res.users'].search([('id', '=', self.env.uid)])
         company = self.env['res.company'].search([('id', '=', user.company_id.id)])
-        
         data_lines_xml = ''
         data_credit_lines_xml = ''
         data_xml_signature = ''
@@ -312,7 +299,6 @@ class DianDocument(models.Model):
         template_debit_line_data_xml = self._template_debit_line_data_xml()
         template_signature_data_xml = self._template_signature_data_xml()
         template_send_data_xml = self._template_send_data_xml()
-        
         # Se obtienen los documento a enviar
         if document_type == 'f':
             by_validate_invoices = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=', document_type)])
@@ -418,7 +404,6 @@ class DianDocument(models.Model):
             data_xml_signature = data_xml_signature.decode()
             # Construye el documento XML con firma
             data_xml_document = data_xml_document.replace("<ext:ExtensionContent></ext:ExtensionContent>","<ext:ExtensionContent>%s</ext:ExtensionContent>" % data_xml_signature)
-            #data_xml_document = '<?xml version="1.0" encoding="UTF-8"?>' + data_xml_document
             data_xml_document = '<?xml version="1.0" encoding="UTF-8"?>' + data_xml_document
             # Generar codigo DIAN       
             doc_send_dian.dian_code = data_constants_document['InvoiceID']
@@ -437,13 +422,9 @@ class DianDocument(models.Model):
             Expires = timestamp['Expires']
             doc_send_dian.date_document_dian = data_constants_document['IssueDateSend']
             # Id de pruebas ante la DIAN (Ojo Quitar cuando se terminen las pruebas)
-            # Plastinorte
-            #testSetId = '6f9f8512-fc07-4b19-b3b5-0ac7f966d0fc'
-            # FERRETERIA PG
             testSetId = company.identificador_set_pruebas
             identifierSecurityToken = uuid.uuid4()
-            identifierTo = uuid.uuid4()
-            
+            identifierTo = uuid.uuid4()            
             # Preparación del envío de la factura 
             if company.production:
                 template_SendBillAsyncsend_xml = self._template_SendBillAsyncsend_xml()
@@ -547,20 +528,7 @@ class DianDocument(models.Model):
                     raise ValidationError('Mensaje de respuesta cambió en su estrcutura xml')
             # Generar código QR
             doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
-
-            # print('--------------------------------------------------------------')
-            # print('response.content envio de documento', response.content)
-            # print('response.status_code envio de documento', response.status_code)
-            # print('--------------------------------------------------------------')
-
         return 
-
-        # # GetNumberingRange 
-        # # template_GetNumberingRange_xml = self._template_GetNumberingRange_xml()
-        # # data_xml_send = self._generate_GetNumberingRange_send_xml(template_GetNumberingRange_xml, data_constants_document['identifier'], Created, Expires, 
-        # #     dian_constants['Certificate'], dian_constants['ProviderID'], dian_constants['ProviderID'],
-        # #     dian_constants['SoftwareID'], identifierSecurityToken, identifierTo)
-        # # Envío SOAP del método SendTestSetAsync
 
 
     @api.multi
@@ -733,8 +701,13 @@ class DianDocument(models.Model):
         data_constants_document['TechnicalKey'] = data_resolution['TechnicalKey']                                           # Clave técnica de la resolución de rango
         data_constants_document['LineExtensionAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed)   # Total Importe bruto antes de impuestos: Total importe bruto, suma de los importes brutos de las líneas de la factura.
         # Valor bruto más tributos
+        #data_constants_document['TotalTaxInclusiveAmount'] = self._caculate_TotalTaxInclusiveAmount(data_header_doc.amount_untaxed, data_header_doc.id)
+
         data_constants_document['TotalTaxInclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_without_wh_tax) 
-        data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
+        data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed if data_header_doc.amount_tax != 0.00 else 0.00)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
+        
+        #data_constants_document['TaxExclusiveAmount'] = self._caculate_TaxExclusiveAmount(data_header_doc.id)
+        
         #data_constants_document['TotalTaxInclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_total) 
         #data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
         # Valor Bruto más tributos - Valor del Descuento Total + Valor del Cargo Total - Valor del Anticipo Total
@@ -780,7 +753,7 @@ class DianDocument(models.Model):
                 data_constants_document['PaymentMeansID'] =  '2'
                 # falta Fecha de vencimiento de la factura Obligatorio si es venta a crédito (0)  
                 data_constants_document['PaymentDueDate'] = data_header_doc.date_invoice
-        # Falta Código correspondiente al medio de pago Lista de valores 6.3.4.2 (1)
+        # Ojo Falta Código correspondiente al medio de pago Lista de valores 6.3.4.2 (1)
         # Por defecto medio de pago 1 Instrumento no definido
         data_constants_document['PaymentMeansCode'] = '1'
         # Datos nota de crédito y débito
@@ -793,7 +766,6 @@ class DianDocument(models.Model):
                     data_constants_document['InvoiceReferenceID'] = dian_document_cancel.dian_code
                     data_constants_document['InvoiceReferenceUUID'] = dian_document_cancel.cufe
                     data_constants_document['InvoiceReferenceDate'] = invoice_cancel.date_invoice
-
         # Genera identificadores único 
         identifier = uuid.uuid4()
         data_constants_document['identifier'] = identifier
@@ -821,13 +793,34 @@ class DianDocument(models.Model):
         return fiscal_responsability_codes
 
 
-    def _caculate_TaxExclusiveAmount(self, amount_tax, invoice_id):
-        amount_untaxed = 0.00
-        data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
-        for data_line_doc in data_lines_doc:
-            if data_line_doc.invoice_line_tax_ids:
-                amount_untaxed += data_line_doc.price_subtotal
-        return amount_untaxed
+    # def _caculate_TaxExclusiveAmount(self, invoice_id):
+    #     amount_untaxed = 0.00
+    #     data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
+    #     for data_line_doc in data_lines_doc:
+    #         if data_line_doc.invoice_line_tax_ids:
+    #             amount_untaxed += data_line_doc.price_subtotal
+    #     return amount_untaxed
+
+
+    # def _caculate_TotalTaxInclusiveAmount(self, amount_untaxed, invoice_id):
+    #     data_tax_detail_doc = self.env['account.invoice.tax'].search([('invoice_id', '=', invoice_id)])
+    #     iva_01 = 0.00
+    #     ica_03 = 0.00
+    #     inc_04 = 0.00
+    #     if data_tax_detail_doc:
+    #         for item_tax in data_tax_detail_doc:
+    #             iva_01 += item_tax.amount if item_tax.tax_id.tax_group_fe == 'iva_fe' else 0.0
+    #             ica_03 += item_tax.amount if item_tax.tax_id.tax_group_fe == 'ica_fe' else 0.0
+    #             inc_04 += item_tax.amount if item_tax.tax_id.tax_group_fe == 'ico_fe' else 0.0 
+    #     # iva_01 = iva_01 if iva_01 >= 0.00 else iva_01 * -1
+    #     # ica_03 = ica_03 if ica_03 >= 0.00 else ica_03 * -1
+    #     # inc_04 = inc_04 if inc_04 >= 0.00 else inc_04 * -1
+    #     TotalTaxInclusiveAmount = amount_untaxed + iva_01 + ica_03 + inc_04
+    #     # print('----------------------------------')
+    #     # print('TotalTaxInclusiveAmount ', TotalTaxInclusiveAmount)
+    #     # print('----------------------------------')
+    #     # print(aaaaaaaaaa)
+    #     return TotalTaxInclusiveAmount
 
 
     def _template_basic_data_fe_xml(self):
@@ -1562,7 +1555,6 @@ class DianDocument(models.Model):
         return template_tax_data_xml
 
 
-
     def _template_line_data_xml(self):
         template_line_data_xml = """
     <cac:InvoiceLine>
@@ -1598,7 +1590,6 @@ class DianDocument(models.Model):
               </cac:TaxCategory>
            </cac:TaxSubtotal>"""
         return template_InvoiceLineTaxSubtotal_xml
-    # Nuevo fin
 
 
     def _template_credit_line_data_xml(self):
@@ -1788,14 +1779,20 @@ class DianDocument(models.Model):
                     total_base_iva_01 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_fe  == 'iva_fe' else 0
                     total_base_ica_03 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_fe  == 'ica_fe' else 0
                     total_base_inc_04 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_fe  == 'ico_fe' else 0 # Mod impuesto
+                if iva_01 != 0.00 and total_base_iva_01 == 0.00 and item_tax.tax_id.tax_group_fe == 'iva_fe':
+                    total_base_iva_01 = item_tax.invoice_id.amount_untaxed
+                if ica_03 != 0.00 and total_base_ica_03 == 0.00 and item_tax.tax_id.tax_group_fe == 'ica_fe':
+                    total_base_ica_03 = item_tax.invoice_id.amount_untaxed
+                if inc_04 != 0.00 and total_base_inc_04 == 0.00 and item_tax.tax_id.tax_group_fe == 'ico_fe':
+                    total_base_inc_04 = item_tax.invoice_id.amount_untaxed
 
         dic_taxs_data['iva_01'] = self._complements_second_decimal(iva_01)
         dic_taxs_data['tax_percentage_iva_01'] = self._complements_second_decimal(tax_percentage_iva_01)
         dic_taxs_data['total_base_iva_01'] = self._complements_second_decimal(total_base_iva_01)
         
-        dic_taxs_data['ica_03'] = self._complements_second_decimal(ica_03)
-        dic_taxs_data['tax_percentage_ica_03'] = self._complements_second_decimal(tax_percentage_ica_03)
-        dic_taxs_data['total_base_ica_03'] = self._complements_second_decimal(total_base_ica_03)
+        dic_taxs_data['ica_03'] = self._complements_second_decimal(ica_03 if ica_03 >= 0.00 else ica_03 * -1.00)
+        dic_taxs_data['tax_percentage_ica_03'] = self._complements_second_decimal(tax_percentage_ica_03 if tax_percentage_ica_03 >= 0.00 else tax_percentage_ica_03 * -1.00)
+        dic_taxs_data['total_base_ica_03'] = self._complements_second_decimal(total_base_ica_03 if total_base_ica_03 >= 0.00 else total_base_ica_03 * -1.00)
         
         dic_taxs_data['inc_04'] = self._complements_second_decimal(inc_04) # Mod impuesto
         dic_taxs_data['tax_percentage_inc_04'] = self._complements_second_decimal(tax_percentage_inc_04) # Mod impuesto
@@ -2011,23 +2008,6 @@ class DianDocument(models.Model):
         ValImp3 = str(data_taxs['ica_03'])
         ValPag  = str(ValPag)
         TipAdq  = str(TipAdq)
-        # print('------------------------------------------------')
-        # print('NumFac', NumFac)
-        # print('FecFac', FecFac)
-        # print('HoraFac', HoraFac)
-        # print('ValFac', ValFac)
-        # print('CodImp1', CodImp1)
-        # print('ValImp1', ValImp1)
-        # print('CodImp2', CodImp2)
-        # print('ValImp2', ValImp2)
-        # print('CodImp3', CodImp3)
-        # print('ValImp3', ValImp3)
-        # print('ValPag', ValPag)
-        # print('NitOFE', NitOFE)
-        # print('NumAdq', NumAdq)
-        # print('ClTec', ClTec)
-        # print('TipoAmbiente', TipoAmbiente)
-        # print('------------------------------------------------')
         CUFE = NumFac+FecFac+HoraFac+ValFac+CodImp1+ValImp1+CodImp2+ValImp2+CodImp3+ValImp3+ValPag+NitOFE+NumAdq+ClTec+TipoAmbiente
         CUFE = hashlib.sha384(CUFE.encode())
         CUFE = CUFE.hexdigest()
@@ -2050,21 +2030,6 @@ class DianDocument(models.Model):
         CUDE = hashlib.sha384(CUDE.encode())
         CUDE = CUDE.hexdigest()
         return CUDE
-
-
-    # @api.model
-    # def _generate_data_send_xml(self, template_send_data_xml, dian_constants, data_constants_document, 
-    #                             Created, Document):
-    #     data_send_xml = template_send_data_xml % {'Username' : dian_constants['Username'],
-    #                     'Password' : dian_constants['Password'],
-    #                     'Nonce' : data_constants_document['Nonce'],
-    #                     'Created' : Created,
-    #                     'NIT' : dian_constants['SupplierID'],
-    #                     'InvoiceNumber' : data_constants_document['InvoiceID'],
-    #                     'IssueDate' : data_constants_document['IssueDateSend'],
-    #                     'Document' : Document,
-    #                     }
-    #     return data_send_xml
 
 
     @api.model
@@ -2167,7 +2132,6 @@ class DianDocument(models.Model):
     def _generate_SignatureValue(self, document_repository, password, data_xml_SignedInfo_generate, 
             archivo_pem, archivo_certificado):
         data_xml_SignatureValue_c14n = etree.tostring(etree.fromstring(data_xml_SignedInfo_generate), method="c14n", exclusive=False, with_comments=False)
-        #archivo_key = document_repository+'/Certificado.p12'
         archivo_key = document_repository+'/'+archivo_certificado
         try:
             key = crypto.load_pkcs12(open(archivo_key, 'rb').read(), password)  
@@ -2179,7 +2143,6 @@ class DianDocument(models.Model):
             raise UserError(tools.ustr(ex))
         SignatureValue = base64.b64encode(signature)
         SignatureValue = SignatureValue.decode()
-        #archivo_pem = document_repository+'/744524.pem'
         archivo_pem = document_repository+'/'+archivo_pem
         pem = crypto.load_certificate(crypto.FILETYPE_PEM, open(archivo_pem, 'rb').read())
         try:
@@ -2504,71 +2467,71 @@ class DianDocument(models.Model):
         return data_send_xml
 
 
-    def _template_GetNumberingRange_xml(self):
-        template_GetNumberingRange_xml = """
-<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia">
-    <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
-        <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
-            <wsu:Timestamp wsu:Id="TS-%(identifier)s">
-                <wsu:Created>%(Created)s</wsu:Created>
-                <wsu:Expires>%(Expires)s</wsu:Expires>
-            </wsu:Timestamp>
-            <wsse:BinarySecurityToken EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3" wsu:Id="BAKENDEVS-%(identifierSecurityToken)s">%(Certificate)s</wsse:BinarySecurityToken>
-            <ds:Signature Id="SIG-%(identifier)s" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-                <ds:SignedInfo>
-                    <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
-                        <ec:InclusiveNamespaces PrefixList="wsa soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-                    </ds:CanonicalizationMethod>
-                    <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
-                    <ds:Reference URI="#ID-%(identifierTo)s">
-                        <ds:Transforms>
-                            <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
-                                <ec:InclusiveNamespaces PrefixList="soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-                            </ds:Transform>
-                        </ds:Transforms>
-                        <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
-                        <ds:DigestValue></ds:DigestValue>
-                    </ds:Reference>
-                </ds:SignedInfo>
-                <ds:SignatureValue></ds:SignatureValue>
-                <ds:KeyInfo Id="KI-%(identifier)s">
-                    <wsse:SecurityTokenReference wsu:Id="STR-%(identifier)s">
-                        <wsse:Reference URI="#BAKENDEVS-%(identifierSecurityToken)s" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3"/>
-                    </wsse:SecurityTokenReference>
-                </ds:KeyInfo>
-            </ds:Signature>
-        </wsse:Security>
-        <wsa:Action>http://wcf.dian.colombia/IWcfDianCustomerServices/GetNumberingRange</wsa:Action>
-        <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
-    </soap:Header>
-    <soap:Body>
-        <wcf:GetNumberingRange>
-            <wcf:accountCode>%(accountCode)s</wcf:accountCode>
-            <wcf:accountCodeT>%(accountCodeT)s</wcf:accountCodeT>
-            <wcf:softwareCode>%(softwareCode)s</wcf:softwareCode>
-        </wcf:GetNumberingRange>
-    </soap:Body>
-</soap:Envelope>
-"""
-        return template_GetNumberingRange_xml
+#     def _template_GetNumberingRange_xml(self):
+#         template_GetNumberingRange_xml = """
+# <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia">
+#     <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+#         <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
+#             <wsu:Timestamp wsu:Id="TS-%(identifier)s">
+#                 <wsu:Created>%(Created)s</wsu:Created>
+#                 <wsu:Expires>%(Expires)s</wsu:Expires>
+#             </wsu:Timestamp>
+#             <wsse:BinarySecurityToken EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3" wsu:Id="BAKENDEVS-%(identifierSecurityToken)s">%(Certificate)s</wsse:BinarySecurityToken>
+#             <ds:Signature Id="SIG-%(identifier)s" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+#                 <ds:SignedInfo>
+#                     <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+#                         <ec:InclusiveNamespaces PrefixList="wsa soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+#                     </ds:CanonicalizationMethod>
+#                     <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+#                     <ds:Reference URI="#ID-%(identifierTo)s">
+#                         <ds:Transforms>
+#                             <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+#                                 <ec:InclusiveNamespaces PrefixList="soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+#                             </ds:Transform>
+#                         </ds:Transforms>
+#                         <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+#                         <ds:DigestValue></ds:DigestValue>
+#                     </ds:Reference>
+#                 </ds:SignedInfo>
+#                 <ds:SignatureValue></ds:SignatureValue>
+#                 <ds:KeyInfo Id="KI-%(identifier)s">
+#                     <wsse:SecurityTokenReference wsu:Id="STR-%(identifier)s">
+#                         <wsse:Reference URI="#BAKENDEVS-%(identifierSecurityToken)s" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3"/>
+#                     </wsse:SecurityTokenReference>
+#                 </ds:KeyInfo>
+#             </ds:Signature>
+#         </wsse:Security>
+#         <wsa:Action>http://wcf.dian.colombia/IWcfDianCustomerServices/GetNumberingRange</wsa:Action>
+#         <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
+#     </soap:Header>
+#     <soap:Body>
+#         <wcf:GetNumberingRange>
+#             <wcf:accountCode>%(accountCode)s</wcf:accountCode>
+#             <wcf:accountCodeT>%(accountCodeT)s</wcf:accountCodeT>
+#             <wcf:softwareCode>%(softwareCode)s</wcf:softwareCode>
+#         </wcf:GetNumberingRange>
+#     </soap:Body>
+# </soap:Envelope>
+# """
+#         return template_GetNumberingRange_xml
 
 
-    @api.model
-    def _generate_GetNumberingRange_send_xml(self, template_getstatus_send_data_xml, identifier, Created, 
-        Expires,  Certificate, accountCode, accountCodeT, softwareCode, 
-        identifierSecurityToken, identifierTo):
-        data_consult_numbering_range_send_xml = template_getstatus_send_data_xml % {
-                        'identifier' : identifier,
-                        'Created' : Created,
-                        'Expires' : Expires,
-                        'Certificate' : Certificate,
-                        'accountCode' : accountCode,
-                        'accountCodeT' : accountCodeT,
-                        'softwareCode' : softwareCode,
-                        'identifierSecurityToken' : identifierSecurityToken,
-                        'identifierTo' : identifierTo,
-                    }
-        return data_consult_numbering_range_send_xml
+#     @api.model
+#     def _generate_GetNumberingRange_send_xml(self, template_getstatus_send_data_xml, identifier, Created, 
+#         Expires,  Certificate, accountCode, accountCodeT, softwareCode, 
+#         identifierSecurityToken, identifierTo):
+#         data_consult_numbering_range_send_xml = template_getstatus_send_data_xml % {
+#                         'identifier' : identifier,
+#                         'Created' : Created,
+#                         'Expires' : Expires,
+#                         'Certificate' : Certificate,
+#                         'accountCode' : accountCode,
+#                         'accountCodeT' : accountCodeT,
+#                         'softwareCode' : softwareCode,
+#                         'identifierSecurityToken' : identifierSecurityToken,
+#                         'identifierTo' : identifierTo,
+#                     }
+#         return data_consult_numbering_range_send_xml
 
 
     def _template_GetStatus_xml(self):
@@ -2633,15 +2596,15 @@ class DianDocument(models.Model):
         return data_getstatus_send_xml   
 
 
-    @api.model
-    def _generate_GetTaxPayer_send_xml(self, template_getstatus_send_data_xml, identifier, Created, Expires,  Certificate, 
-        identifierSecurityToken, identifierTo):
-        data_getstatus_send_xml = template_getstatus_send_data_xml % {
-                        'identifier' : identifier,
-                        'Created' : Created,
-                        'Expires' : Expires,
-                        'Certificate' : Certificate,
-                        'identifierSecurityToken' : identifierSecurityToken,
-                        'identifierTo' : identifierTo,
-                    }
-        return data_getstatus_send_xml  
+    # @api.model
+    # def _generate_GetTaxPayer_send_xml(self, template_getstatus_send_data_xml, identifier, Created, Expires,  Certificate, 
+    #     identifierSecurityToken, identifierTo):
+    #     data_getstatus_send_xml = template_getstatus_send_data_xml % {
+    #                     'identifier' : identifier,
+    #                     'Created' : Created,
+    #                     'Expires' : Expires,
+    #                     'Certificate' : Certificate,
+    #                     'identifierSecurityToken' : identifierSecurityToken,
+    #                     'identifierTo' : identifierTo,
+    #                 }
+    #     return data_getstatus_send_xml  

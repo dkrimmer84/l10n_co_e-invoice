@@ -19,6 +19,7 @@ class AccountInvoice(models.Model):
 
     QR_code = fields.Binary(string='Código QR', readonly=True, related = 'diancode_id.QR_code')
     cufe = fields.Char(string='CUFE', readonly=True, related = 'diancode_id.cufe')
+    xml_response_dian = fields.Text(string='Contenido XML de la respuesta DIAN', readonly=True, related = 'diancode_id.xml_response_dian')
 
     @api.multi
     def write(self, vals):
@@ -27,13 +28,13 @@ class AccountInvoice(models.Model):
         after_state = self.state
 
         if before_state == 'draft' and after_state == 'open' and self.type == 'out_invoice' and self.is_debit_note == False:
-            new_dian_document = self.env['dian.document'].create({'document_id' : self.id, 'document_type' : 'f'})
+            new_dian_document = self.env['dian.document'].sudo().create({'document_id' : self.id, 'document_type' : 'f'})
 
         if before_state == 'draft' and after_state == 'open' and self.type == 'out_refund':
-            new_dian_document = self.env['dian.document'].create({'document_id' : self.id, 'document_type' : 'c'})
+            new_dian_document = self.env['dian.document'].sudo().create({'document_id' : self.id, 'document_type' : 'c'})
 
         if before_state == 'draft' and after_state == 'open' and self.type == 'out_invoice' and self.is_debit_note == True:
-            new_dian_document = self.env['dian.document'].create({'document_id' : self.id, 'document_type' : 'd'})
+            new_dian_document = self.env['dian.document'].sudo().create({'document_id' : self.id, 'document_type' : 'd'})
         
         return True
 
@@ -310,3 +311,11 @@ class AccountInvoiceReport(models.Model):
 
     def _group_by(self):
         return super(AccountInvoiceReport, self)._group_by() + ", ai.diancode_id"
+
+
+
+class IrAttachment(models.Model):
+    _inherit = "ir.attachment"
+
+    type = fields.Selection([('url', 'URL'), ('binary', 'File'),('out_invoice', 'Out Invoice'),('out_refund', 'Out Refund')],
+        string='Type', required=True, default='binary', change_default=True)

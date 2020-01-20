@@ -5,8 +5,8 @@
        <field name="inherit_id" ref="base.view_partner_form" />
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='ciiu_id']" position="after">
-<!--             <xpath expr="//field[@name='l10n_co_document_type']" position="after"> -->
+<!--             <xpath expr="//field[@name='ciiu_id']" position="after"> -->
+            <xpath expr="//field[@name='l10n_co_document_type']" position="after">
                 <field name="fiscal_responsability_ids" widget="many2many_tags"/>
                 <field name="tribute_id"/>
             </xpath>

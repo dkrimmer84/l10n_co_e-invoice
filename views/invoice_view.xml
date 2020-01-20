@@ -49,6 +49,7 @@
                             <field name="cufe"/>
                             <field name="state_dian_document" />
                             <field name="response_message_dian" />
+                            <field name="xml_response_dian" attrs="{'invisible' : [('state_dian_document', '=', 'exitoso')]}" />
                             <field name="email_response" />
                             <field name="type" invisible = "1"/>
                             <button type="object" name="action_invoice_dian_resend" string="Reenviar el documento DIAN por email" attrs="{'invisible' : ['|',('email_response', '=', 'accepted')]}"/>
