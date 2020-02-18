@@ -33,13 +33,5 @@
         <th>Impuesto</th>
       </xpath>
     </template>
-
-
-    <template id="report_invoice_document_inherit_fe" inherit_id="account.report_invoice_document">
-      <xpath expr="//div//h2/span[1]" position="replace">
-        <span t-if="o.type == 'out_invoice' and (o.state == 'open' or o.state == 'paid')">Factura Electrónica de Venta</span>
-      </xpath>
-      
-    </template>
 </data>
 </odoo>

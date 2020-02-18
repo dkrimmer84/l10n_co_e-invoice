@@ -48,7 +48,7 @@ server_url = {
     'PRODUCCION':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/facturaElectronica.wsdl',
     'HABILITACION_CONSULTA':'https://facturaelectronica.dian.gov.co/habilitacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl',
     'PRODUCCION_CONSULTA':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl',
-    'PRODUCCION_VP':'https://colombia-dian-webservices-input-sbx.azurewebsites.net/WcfDianCustomerServices.svc?wsdl',
+    'PRODUCCION_VP':'https://vpfe.dian.gov.co/WcfDianCustomerServices.svc?wsdl',                      
     'HABILITACION_VP':'https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc?wsdl'
 }
 
@@ -76,7 +76,7 @@ class Company(models.Model):
     issuer_name = fields.Char(string="Ente emisor del certificado", required=True, default="")
     serial_number = fields.Char(string="Serial del certificado", required=True, default="")
     document_repository = fields.Char(string='Ruta de almacenamiento de archivos', required=True)
-    in_use_dian_sequence = fields.Selection('_get_dian_sequence', 'Secuenciador DIAN a utilizar', required=True)
+    in_use_dian_sequence = fields.Selection('_get_dian_sequence', 'Secuenciador DIAN a utilizar', required=False)
     certificate_key = fields.Char(string='Clave del certificado P12', required=True, default="")
     operation_type = fields.Selection([('01','Combustible'),('02','Emisor es Autoretenedor'),('03','Excluidos y Exentos'),
     ('04','Exportación'),('05','Generica'),('06','Generica con pago anticipado'),
@@ -86,6 +86,10 @@ class Company(models.Model):
     certificate = fields.Char(string="Nombre del archivo del certificado", required=True, default="")
     production = fields.Boolean(string='Pase a producción', default=0)
     xml_response_numbering_range = fields.Text(string='Contenido XML de la respuesta DIAN a la consulta de rangos', readonly=True)
+    in_contingency_4 = fields.Boolean(string="En contingencia", default=False)
+    date_init_contingency_4 = fields.Datetime(string='Fecha de inicio de contingencia 4')
+    date_end_contingency_4 = fields.Datetime(string='Fecha de fin de contingencia 4')
+    exists_invoice_contingency_4 = fields.Boolean(string="Cantidad de facturas con contingencia 4 sin reportar a la DIAN", default=False)
 
 
     def query_numbering_range(self):
@@ -237,7 +241,7 @@ class Company(models.Model):
             </ds:Signature>
         </wsse:Security>
         <wsa:Action>http://wcf.dian.colombia/IWcfDianCustomerServices/GetNumberingRange</wsa:Action>
-        <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
+        <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">https://vpfe.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
     </soap:Header>
     <soap:Body>
         <wcf:GetNumberingRange>

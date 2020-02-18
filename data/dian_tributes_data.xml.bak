@@ -77,20 +77,10 @@
             <field name="name">Sordicom</field>
         </record>
 
-        <record id="tribute_ZY" model="dian.tributes">
-            <field name="code">ZY</field>
-            <field name="name">No causa</field>
-        </record>
-
         <record id="tribute_ZZ" model="dian.tributes">
             <field name="code">ZZ</field>
             <field name="name">Nombre de la figura tributaria</field>
         </record>
-
-<!--         <record id="tribute_000" model="dian.tributes">
-            <field name="code">000</field>
-            <field name="name">No Aplica</field>
-        </record> -->
 
     </data>
 </odoo>

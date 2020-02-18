@@ -22,6 +22,7 @@
         'views/report_invoice.xml',
         'views/account_view.xml',
         'views/sequence_view.xml',
+        'views/product_view.xml'
     ],
 
     'installable' : True
