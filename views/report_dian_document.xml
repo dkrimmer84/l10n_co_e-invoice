@@ -28,6 +28,7 @@
 		                </div>
 		                <div name="QR_code" class="col-xs-6">
 		                	<img class="media-object" t-att-src="'data:image/png;base64,%s' % o.diancode_id.QR_code" />
+		                	<!--<img t-attf-src="data:image/*;base64,{{o.diancode_id.QR_code}}"/>-->
 		                </div>
 		            </div>
 		            <br />

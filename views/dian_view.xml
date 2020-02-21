@@ -16,6 +16,12 @@
                 <field name="date_email_send"/>
                 <field name="email_response"/>
                 <field name="state"/>
+                <field name="contingency_3"/>
+                <field name="contingency_4"/>
+                <field name="state_contingency"/>
+                <field name="date_error_DIAN_1"/>
+                <field name="date_error_DIAN_2"/>
+                <field name="date_error_DIAN_3"/>
             </tree>
         </field>
     </record>
@@ -59,7 +65,13 @@
                             <field name="xml_response_dian"/>
                             <field name="xml_send_query_dian"/>
                         </group>
-
+                        <group>
+                            <field name="contingency_3" />
+                            <field name="contingency_4" />
+                            <field name="xml_document_contingency"  attrs="{'invisible' : [('contingency_3', '=', False), ('contingency_4', '=', False)]}"/>
+                            <field name="xml_response_contingency_dian" attrs="{'invisible' : [('contingency_3', '=', False), ('contingency_4', '=', False)]}"/> 
+                            <field name="state_contingency" attrs="{'invisible' : [('contingency_3', '=', False), ('contingency_4', '=', False)]}"/>
+                        </group>
                     </group>
                 </body>
             </form>

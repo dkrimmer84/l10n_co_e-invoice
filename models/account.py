@@ -12,5 +12,7 @@ class AccountTax(models.Model):
                             ('07','ReteICA'), ('08','ReteCREE'), ('20','FtoHorticultura'), ('21','Timbre'),
                             ('22','Bolsas'), ('23','INCarbono'), ('24','INCombustibles'),
                             ('25','Sobretasa Combustibles'), ('26','Sordicom'),
+                            ('ZY','No causa'),
                             ('ZZ','Nombre de la figura tributaria')
                     ],string="Tributo DIAN")
+

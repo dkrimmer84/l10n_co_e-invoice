@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _, tools
-from odoo.exceptions import Warning, UserError, ValidationError
+from odoo.exceptions import UserError, ValidationError
 from datetime import datetime, timedelta, date
 from dateutil.relativedelta import *
 from pytz import timezone
@@ -12,34 +12,34 @@ _logger = logging.getLogger(__name__)
 try:
     from lxml import etree
 except:
-    _logger.warning("Cannot import  etree *************************************")
+    print("Cannot import  etree **********************************************")
 
 from openerp.tools.translate import _
 
 try:
     import pyqrcode
 except ImportError:
-    _logger.warning('Cannot import pyqrcode library ***************************')
+    _logger.warning('Cannot import pyqrcode library ***********************')
 
 try:
     import png
 except ImportError:
-    _logger.warning('Cannot import png library ********************************')
+    _logger.warning('Cannot import png library ***********************')
 
 try:
     import hashlib
 except ImportError:
-    _logger.warning('Cannot import hashlib library ****************************')
+    _logger.warning('Cannot import hashlib library ***********************')
 
 try:
     import base64
 except ImportError:
-    _logger.warning('Cannot import base64 library *****************************')
+    _logger.warning('Cannot import base64 library ***********************')
 
 try:
     import textwrap
 except:
-    _logger.warning("no se ha cargado textwrap ********************************")
+    _logger.warning("no se ha cargado textwrap ***********************")
 
 try:
     import gzip
@@ -105,7 +105,7 @@ tipo_ambiente = {
 tributes = {
    '01':'IVA', '02':'IC', '03':'ICA', '04':'INC', '05':'ReteIVA', '06':'ReteFuente', '07':'ReteICA', 
    '08':'ReteCREE', '20':'FtoHorticultura', '21':'Timbre', '22':'Bolsas', '23':'INCarbono', '24':'INCombustibles',
-   '25':'Sobretasa Combustibles', '26':'Sordicom', 'ZY':'No causa', 'ZZ':'Nombre de la figura tributaria'
+   '25':'Sobretasa Combustibles', '26':'Sordicom', 'ZZ':'Nombre de la figura tributaria'
 }
 
 import os
@@ -148,7 +148,6 @@ class DianDocument(models.Model):
                             readonly=True)
     dian_code = fields.Char(string='Código DIAN', readonly=True)
     xml_document = fields.Text(string='Contenido XML del documento', readonly=True)
-    xml_document_contingency = fields.Text(string='Contenido XML del documento de contigencia', readonly=True)
     xml_file_name = fields.Char(string='Nombre archivo xml', readonly=True)
     zip_file_name = fields.Char(string='Nombre archivo zip', readonly=True)
     date_request_dian = fields.Datetime(string="Fecha consulta DIAN", readonly=True)
@@ -168,26 +167,18 @@ class DianDocument(models.Model):
     ZipKey = fields.Char(string='Identificador del docuemnto enviado', readonly=True)
     xml_response_dian = fields.Text(string='Contenido XML de la respuesta DIAN', readonly=True)
     xml_send_query_dian = fields.Text(string='Contenido XML de envío de consulta de documento DIAN', readonly=True)
-    xml_response_contingency_dian = fields.Text(string='Mensaje de respuesta DIAN al envío de la contigencia', readonly=True)
-    state_contingency = fields.Selection([('por_notificar','por_notificar'),
-                            ('exitosa', 'Exitosa'), 
-                            ('rechazada', 'Rechazada')],
-                            string="Estatus de contingencia",
-                            readonly=True,
-                            default='por_notificar',
-                            required=True)
-    #contingency_type = fields.Selection(string='Tipo de contigencia', related='document_id.contingency_type')
-    contingency_3 = fields.Boolean(string='Contingencia tipo 3', related='document_id.contingency_3')
-    contingency_4 = fields.Boolean(string='Contingencia tipo 4', related='document_id.contingency_4')
-    count_error_DIAN = fields.Integer(string="contador de intentos fallidos por problemas de la DIAN", default=0)
-    date_error_DIAN_1 = fields.Datetime(string='Fecha del 1er. mensaje de error DIAN')
-    message_error_DIAN_1 = fields.Text(string='Mensaje del 1er. error de respuesta DIAN')
-    date_error_DIAN_2 = fields.Datetime(string='Fecha del 2do. mensaje de error DIAN')
-    message_error_DIAN_2 = fields.Text(string='Mensaje del 2do. error de respuesta DIAN')
-    date_error_DIAN_3 = fields.Datetime(string='Fecha del 3er. mensaje de error DIAN')
-    message_error_DIAN_3 = fields.Text(string='Mensaje del 3er. error de respuesta DIAN')
 
-       
+
+    # @api.multi
+    # def generate_new_dian_document(self):
+    #     self.ensure_one()
+    #     self.resend = False
+    #     self.last_shipping = False
+    #     vals = {'document_id' : self.document_id.id, 'document_type' : self.document_type}
+    #     new_dian_document = self.create(vals)
+    #     return new_dian_document
+
+
     @api.model
     def _get_resolution_dian(self, data_header_doc):
         #rec_active_resolution = self.env['ir.sequence.dian_resolution'].search([('resolution_number', '=', data_header_doc.resolution_number)])
@@ -203,8 +194,6 @@ class DianDocument(models.Model):
             dict_resolution_dian['To'] = rec_active_resolution.number_to                            # Hasta la secuencia
             dict_resolution_dian['TechnicalKey'] = rec_active_resolution.technical_key              # Clave técnica de la resolución de rango
             dict_resolution_dian['InvoiceID'] = data_header_doc.number                              # Codigo del documento
-            #13FEB dict_resolution_dian['ContingencyID'] = data_header_doc.contingency_invoice_number 
-            dict_resolution_dian['ContingencyID'] = data_header_doc.number     # Número de fcatura de contingencia
         else:
             raise ValidationError("El número de resolución DIAN asociada a la factura no existe")
         return dict_resolution_dian
@@ -300,7 +289,6 @@ class DianDocument(models.Model):
 
     @api.model
     def send_pending_dian(self, document_id, document_type):
-        resultado = self._get_datetime()
         user = self.env['res.users'].search([('id', '=', self.env.uid)])
         company = self.env['res.company'].search([('id', '=', user.company_id.id)])
         data_lines_xml = ''
@@ -310,7 +298,6 @@ class DianDocument(models.Model):
         template_basic_data_fe_xml = self._template_basic_data_fe_xml()
         template_basic_data_nc_xml = self._template_basic_data_nc_xml()
         template_basic_data_nd_xml = self._template_basic_data_nd_xml()
-        template_basic_data_contingencia_xml = self._template_basic_data_contingencia_xml()
         template_tax_data_xml = self._template_tax_data_xml()
         template_line_data_xml = self._template_line_data_xml()
         template_credit_line_data_xml = self._template_credit_line_data_xml()
@@ -346,30 +333,13 @@ class DianDocument(models.Model):
                     raise ValidationError('La factura a la que se le va a aplicar la nota de débito, no ha sido enviada o aceptada por la DIAN')
             by_validate_debit_notes_autorized = self.env['dian.document'].browse(cn_with_validated_invoices_ids)
             docs_send_dian = by_validate_debit_notes_autorized
-
-        if document_type == 'contingency' and self.contingency_3:
-            #13FEB by_validate_contingencys = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=', 'f')])
-            #13FEB contingency_with_validated_invoices_ids = []
-            #13FEB for by_validate_contingency in by_validate_contingencys:
-            #13FEB     invoice_validated = self.env['account.invoice'].search([('id', '=', by_validate_contingency.document_id.id),('type', '=', 'out_invoice'),('state_dian_document', '=', 'exitoso')])
-            #13FEB     if invoice_validated:
-            #13FEB         contingency_with_validated_invoices_ids.append(by_validate_contingency.id)
-            #13FEB     else:
-            #13FEB         raise ValidationError('La factura a la que se le va a aplicar la contingencia tipo 3, no ha sido enviada o aceptada por la DIAN')
-            #13FEB by_validate_contingency_autorized = self.env['dian.document'].browse(contingency_with_validated_invoices_ids)
-            #13FEB docs_send_dian = by_validate_contingency_autorized
-            by_validate_invoices = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=',  'f')])
-            if by_validate_invoices:
-                docs_send_dian = by_validate_invoices
-            else:
-                raise ValidationError('La factura no está en proceso de envío a la DIAN. Contacte al administrador del sistema')
         for doc_send_dian in docs_send_dian:
             data_header_doc = self.env['account.invoice'].search([('id', '=', doc_send_dian.document_id.id)])
             dian_constants = self._get_dian_constants(data_header_doc)
             # Se obtienen constantes del documento
-            data_constants_document = self._generate_data_constants_document(data_header_doc, dian_constants, document_type, company.in_contingency_4)            
+            data_constants_document = self._generate_data_constants_document(data_header_doc, dian_constants)            
             # Construye el documento XML para la factura sin firma
-            if data_constants_document['InvoiceTypeCode'] in ('01','04'):
+            if data_constants_document['InvoiceTypeCode'] == '01':
                 # Genera líneas de detalle de los impuestos
                 data_taxs = self._get_taxs_data(data_header_doc.id)
                 data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
@@ -433,28 +403,6 @@ class DianDocument(models.Model):
                 template_basic_data_nd_xml = template_basic_data_nd_xml.decode()
                 data_xml_document = self._generate_data_nd_document_xml(template_basic_data_nd_xml, dian_constants, data_constants_document, data_debit_lines_xml, CUFE, data_taxs_xml)
                 # Elimina espacios del documento xml                
-                data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
-                data_xml_document = data_xml_document.decode()
-            # Construye el documento XML para la factura de contingencia sin firma
-            if data_constants_document['InvoiceTypeCode'] == '03':
-                data_taxs = self._get_taxs_data(data_header_doc.id)
-                data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
-                # Genera líneas de detalle de las factura
-                data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id)
-                # Generar CUDE
-                ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
-                CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
-                        data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
-                        dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
-                        data_constants_document['CustomerID'], dian_constants['PINSoftware'], data_constants_document['PayableAmount'], 
-                        data_taxs, ambiente)
-                doc_send_dian.cufe = CUFE
-                # Genera documento xml de la factura
-                template_basic_data_contingencia_xml = '<?xml version="1.0"?>' + template_basic_data_contingencia_xml
-                template_basic_data_contingencia_xml = etree.tostring(etree.XML(template_basic_data_contingencia_xml, parser=parser))
-                template_basic_data_contingencia_xml = template_basic_data_contingencia_xml.decode()
-                data_xml_document = self._generate_data_contingencia_document_xml(template_basic_data_contingencia_xml, dian_constants, data_constants_document, data_taxs_xml, data_lines_xml, CUFE, data_xml_signature)
-                # Elimina espacios del documento xml la factura
                 data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
                 data_xml_document = data_xml_document.decode()
             # Genera la firma en el documento xml
@@ -531,232 +479,130 @@ class DianDocument(models.Model):
                                             '<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia" xmlns:wsa="http://www.w3.org/2005/08/addressing">')
             SignatureValue = self._generate_SignatureValue_GetStatus(dian_constants['document_repository'], dian_constants['CertificateKey'], Signedinfo, dian_constants['archivo_pem'], dian_constants['archivo_certificado'])
             data_xml_send = data_xml_send.replace('<ds:SignatureValue/>','<ds:SignatureValue>%s</ds:SignatureValue>' % SignatureValue)
-            
             #   Contruye XML de envío de petición
             headers = {'content-type': 'application/soap+xml'}
-            URL_WEBService_DIAN = server_url['PRODUCCION_VP'] if company.production else server_url['HABILITACION_VP']
-            
-            if company.in_contingency_4 == False: # Diferente a contingencia tipo 4 (Problemas tecnológicos en la DIAN)
-                
+            if company.production:
                 try:
-                    response = requests.post(URL_WEBService_DIAN,data=data_xml_send,headers=headers)
+                    response = requests.post(server_url['PRODUCCION_VP'],data=data_xml_send,headers=headers)
                 except:
-                    raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas. Por favor, revise su red o el acceso a internet.')
-                
-                # code = 500
-                # if code != 200:
+                    raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+            else:
+                try:
+                    response = requests.post(server_url['HABILITACION_VP'],data=data_xml_send,headers=headers)
+                except:
+                    raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+            #   Respuesta de petición
+            if response.status_code != 200: # Respuesta de envío no exitosa
+                if response.status_code == 500:
+                    raise ValidationError('Error 500 = Error de servidor interno')
+                if response.status_code == 503:
+                    raise ValidationError('Error 503 = Servicio no disponible')
+            #   Procesa respuesta DIAN 
+            response_dict = xmltodict.parse(response.content)
+            # print('-----------------------------------------')
+            # print('response.content ', response.content)
+            # print('response_dict ', response_dict)
+            # print('-----------------------------------------')
 
-                if response.status_code != 200: # Respuesta de envío no exitosa
+            dict_mensaje = {}
+            # if company.production:
 
-                    # if code in (500,503,507,508):
-                    #     message_error_DIAN = str(code) + ' ' + 'Prueba'
-
-                    message_error_DIAN = str(response.status_code) + ' ' + response.content.decode()
-                    if response.status_code in (500,503,507,508):
-                        data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                        if doc_send_dian.count_error_DIAN == 0:
-                            doc_send_dian.date_error_DIAN_1 = self._get_datetime()
-                            doc_send_dian.message_error_DIAN_1 = message_error_DIAN
-                            doc_send_dian.count_error_DIAN = 1
-                        elif doc_send_dian.count_error_DIAN == 1:
-                            doc_send_dian.date_error_DIAN_2 = self._get_datetime()
-                            doc_send_dian.message_error_DIAN_2 = message_error_DIAN
-                            doc_send_dian.count_error_DIAN = 2
-                        elif doc_send_dian.count_error_DIAN == 2:
-                            doc_send_dian.date_error_DIAN_3 = self._get_datetime()
-                            doc_send_dian.message_error_DIAN_3 = message_error_DIAN
-                            doc_send_dian.count_error_DIAN = 3
-                        elif doc_send_dian.count_error_DIAN == 3:
-                            company.in_contingency_4 = True
-                            company.date_init_contingency_4 = self._get_datetime()
-                            doc_send_dian.count_error_DIAN = 0
-                            if company.in_contingency_4 == True and self.contingency_3 == False:
-                                document_type = self.document_type
-                            else:
-                                document_type = self.document_type if self.contingency_3 == False else 'contingency'
-                            #document_type = self.document_type if self.contingency_3 == False and  self.contingency_4 == False else 'contingency'
-                            self.send_pending_dian(self.id, document_type)
-                    else:
-                        raise ValidationError(message_error_DIAN)
-
-                    # if response.status_code == 500:
-                    #     raise ValidationError('Error 500 = Error de servidor interno. Por favor, intente nuevamente en 20 segundos')
-                    # if response.status_code == 503:
-                    #     raise ValidationError('Error 503 = Servicio no disponible. Por favor, intente nuevamente en 20 segundos')
-                    # if response.status_code == 507:
-                    #     raise ValidationError('Error 507 = Espacio insuficiente. Por favor, intente nuevamente en 20 segundos')
-                    # if response.status_code == 508:
-                    #     raise ValidationError('Error 508 = Ciclo detectado. Por favor, intente nuevamente en 20 segundos')
-
-                else:
-                    # company.in_contingency_4 = False
-                    # company.date_end_contingency_4 = self._get_datetime()
-                    # Procesa respuesta DIAN 
-                    response_dict = xmltodict.parse(response.content)
-                    dict_mensaje = {}
-                    dict_mensaje = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid']
-                    doc_send_dian.response_message_dian = ' '
-                    if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid'] == 'true':
-                        # if document_type != 'contingency':
-                        doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
-                        doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
-                        doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
-                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
-                        doc_send_dian.xml_response_dian = response.content
-                        doc_send_dian.xml_send_query_dian = data_xml_send
-                        doc_send_dian.write({'state' : 'exitoso', 'resend' : False})
-                        if doc_send_dian.contingency_3:
-                            doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
-                        data_header_doc.write({'diancode_id' : doc_send_dian.id})                        
-                        # Generar código QR
-                        doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
-                        # Envío de correo
-                        if doc_send_dian.contingency_4 == False:
-                            if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
-                                doc_send_dian.date_email_send = fields.Datetime.now()
-                            # plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-                            # if plantilla_correo:
-                            #     plantilla_correo.send_mail(doc_send_dian.document_id.id, force_send = True)
-                            #     doc_send_dian.date_email_send = fields.Datetime.now()
-                        # else:
-                        #     print('13FEB-------------------------------------------------')
-                        #     print('13FEBPAsooooooooooooooooo bien')
-                        #     print('13FEB-------------------------------------------------')
-                        #     doc_send_dian.xml_response_contingency_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
-                        #     doc_send_dian.xml_response_contingency_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
-                        #     doc_send_dian.xml_response_contingency_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
-                        #     doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
-                        #     data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                        #     doc_send_dian.xml_document_contingency = data_xml_document
-                        #     # Generar código QR
-                        #     doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
-                    else:
-                        #if document_type != 'contingency':
-                        doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
-                        doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
-                        doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
-                        doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
-                        doc_send_dian.write({'state' : 'rechazado', 'resend' : True})
-                        if doc_send_dian.contingency_3:
-                            doc_send_dian.write({'state_contingency' : 'rechazada', 'resend' : True})
-                        data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                        doc_send_dian.xml_response_dian = response.content
-                        doc_send_dian.xml_send_query_dian = data_xml_send
-                        # Generar código QR
-                        doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
-                        # else:
-                        #     print('13FEB-------------------------------------------------')
-                        #     print('13FEBPAsooooooooooooooooo mal bien')
-                        #     print('13FEB-------------------------------------------------')
-                        #     doc_send_dian.xml_response_contingency_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
-                        #     doc_send_dian.xml_response_contingency_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
-                        #     doc_send_dian.xml_response_contingency_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
-                        #     doc_send_dian.write({'state_contingency' : 'rechazada', 'resend' : True})
-                        #     data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                        #     doc_send_dian.xml_response_dian = response.content
-                        #     doc_send_dian.xml_send_query_dian = data_xml_send
-                        #     doc_send_dian.xml_document_contingency = data_xml_document
-                        #     # Generar código QR
-                        #     doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
-            else: # Contigencia tipo 4
-                data_header_doc.contingency_4 = True                
-                doc_send_dian.xml_document_contingency = data_xml_document
-                doc_send_dian.xml_send_query_dian = data_xml_send
+            #     dict_mensaje = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ErrorMessageList']
+            #     if '@i:nil' in dict_mensaje:
+            #         if response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ErrorMessageList']['@i:nil'] == 'true':
+            #             doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+            #             doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ZipKey']
+            #             doc_send_dian.state = 'por_validar'
+            #         else:
+            #             doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+            #             doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ZipKey']
+            #             doc_send_dian.state = 'por_notificar'
+            #     elif 'i:nil' in dict_mensaje:
+            #         if response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ErrorMessageList']['i:nil'] == 'true':
+            #             doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+            #             doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendBillAsyncResult']['b:ZipKey']
+            #             doc_send_dian.state = 'por_validar'
+            #         else:
+            #             doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+            #             doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+            #             doc_send_dian.state = 'por_notificar'
+            #     else:
+            #         raise ValidationError('Mensaje de respuesta cambió en su estrcutura xml')
+            # else:
+            dict_mensaje = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid']
+            doc_send_dian.response_message_dian = ' '
+            if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid'] == 'true':
+                doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
+                doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
+                doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
+                doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
+                doc_send_dian.write({'state' : 'exitoso', 'resend' : False})
+                data_header_doc.write({'diancode_id' : doc_send_dian.id})
                 # Generar código QR
                 doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
-                # Envío de correo
-
                 #doc_send_dian.response_message_dian += '- Respuesta consulta estado del documento: Procesado correctamente \n'
-                # Enviar email
-                data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
-                    doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
+                plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
+                if plantilla_correo:
+                    plantilla_correo.send_mail(doc_send_dian.document_id.id, force_send = True)
                     doc_send_dian.date_email_send = fields.Datetime.now()
-                    doc_send_dian.xml_response_contingency_dian = 'XML de factura de contigencia enviada al cliente'
-                else:
-                    doc_send_dian.write({'state_contingency' : 'rechazada', 'resend' : True})
-                    doc_send_dian.xml_response_dian = ' '
-                    doc_send_dian.xml_response_contingency_dian = 'XML de factura de contingencia no pudo ser enviada al cliente' 
+            else:
+                doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
+                doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
+                #doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:ErrorMessage'] + '\n'
+                doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
+                doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
+                doc_send_dian.write({'state' : 'rechazado', 'resend' : True})
+                data_header_doc.write({'diancode_id' : doc_send_dian.id})
+                # Generar código QR
+                doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                doc_send_dian.xml_response_dian = response.content
+                doc_send_dian.xml_send_query_dian = data_xml_send
 
-                # plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-                # if plantilla_correo:
-                #     doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
-                #     data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                #     plantilla_correo.send_mail(doc_send_dian.document_id.id, force_send = True)
-                #     doc_send_dian.date_email_send = fields.Datetime.now()
-                #     doc_send_dian.xml_response_contingency_dian = 'XML de factura de contigencia enviada al cliente'
+
+                # if '@i:nil' in dict_mensaje:
+                #     if response_dict['s:Envelope']['s:Body']['SendBillSyncResult']['SendTestSetAsyncResult']['b:ErrorMessageList']['@i:nil'] == 'true':
+                #         doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                #         doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                #         doc_send_dian.state = 'por_validar'
+                #     else:
+                #         doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                #         doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                #         doc_send_dian.state = 'por_notificar'
+                # elif 'i:nil' in dict_mensaje:
+                #     if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['i:nil'] == 'true':
+                #         doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                #         doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                #         doc_send_dian.state = 'por_validar'
+                #     else:
+                #         doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                #         doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                #         doc_send_dian.state = 'por_notificar'
+
+
+
+                # dict_mensaje = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']
+                # if '@i:nil' in dict_mensaje:
+                #     if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['@i:nil'] == 'true':
+                #         doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                #         doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                #         doc_send_dian.state = 'por_validar'
+                #     else:
+                #         doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                #         doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                #         doc_send_dian.state = 'por_notificar'
+                # elif 'i:nil' in dict_mensaje:
+                #     if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['i:nil'] == 'true':
+                #         doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                #         doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                #         doc_send_dian.state = 'por_validar'
+                #     else:
+                #         doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                #         doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                #         doc_send_dian.state = 'por_notificar'
                 # else:
-                #     doc_send_dian.write({'state_contingency' : 'rechazada', 'resend' : True})
-                #     data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                #     doc_send_dian.xml_response_dian = ' '
-                #     doc_send_dian.xml_response_contingency_dian = 'XML de factura de contingencia no pudo ser enviada al cliente' 
+                #     raise ValidationError('Mensaje de respuesta cambió en su estrcutura xml')
+        return 
 
-                # Verificar si en la DIAN todavía persiste la falla tecnológica
-                date_current = self._get_datetime()    
-                date_current = datetime.strptime(date_current, '%Y-%m-%d %H:%M:%S')
-                time_difference = date_current - company.date_init_contingency_4  
-                if time_difference.days > 0 or (time_difference.seconds / 60) > 30:                          
-                    company.in_contingency_4 = False
-                    company.date_end_contingency_4 = date_current
-        return  
-
-
-    def enviar_email(self, data_xml_document, invoice_id, fileName):
-        rs_invoice = self.env['account.invoice'].search([('id', '=', invoice_id)])
-        dian_xml = base64.b64encode(data_xml_document.encode())
-        rs_invoice.write({'archivo_xml_invoice': dian_xml})
-        rs_adjunto = self.env['ir.attachment'].sudo()
-        dictAdjunto = {
-            'name': 'xml DIAN de factura',
-            'res_id': rs_invoice.id,
-            'res_model': 'account.invoice',
-            'res_model_name': 'Factura',
-            'res_field': 'archivo_xml_invoice',
-            'mimetype': 'application/xml;charset=utf-8',
-            'public': True,
-            'datas_fname': fileName,
-            'res_name': fileName,
-            'db_datas': dian_xml,
-        }
-        nuevo_adjunto = rs_adjunto.create(dictAdjunto)
-        rs_invoice.xml_adjunto_ids += nuevo_adjunto
-        plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-        if plantilla_correo:
-            plantilla_correo.attachment_ids = rs_invoice.xml_adjunto_ids
-            plantilla_correo.send_mail(rs_invoice.id, force_send = True) 
-            return True
-        else:       
-            raise ValidationError("No existe la plantilla de correo email_template_edi_invoice_dian para el email")
-
-
-    @api.multi
-    def enviar_email(self, data_xml_document, invoice_id, fileName):
-        rs_invoice = self.env['account.invoice'].search([('id', '=', invoice_id)])
-        dian_xml = base64.b64encode(data_xml_document.encode())
-        rs_invoice.write({'archivo_xml_invoice': dian_xml})
-        rs_adjunto = self.env['ir.attachment'].sudo()
-        dictAdjunto = {
-            'name': 'xml DIAN de factura',
-            'res_id': rs_invoice.id,
-            'res_model': 'account.invoice',
-            'res_model_name': 'Factura',
-            'res_field': 'archivo_xml_invoice',
-            'mimetype': 'application/xml;charset=utf-8',
-            'public': True,
-            'datas_fname': fileName,
-            'res_name': fileName,
-            'db_datas': dian_xml,
-        }
-        nuevo_adjunto = rs_adjunto.create(dictAdjunto)
-        rs_invoice.xml_adjunto_ids += nuevo_adjunto
-        plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-        if plantilla_correo:
-            plantilla_correo.attachment_ids = rs_invoice.xml_adjunto_ids
-            plantilla_correo.send_mail(rs_invoice.id, force_send = True) 
-            return True
-        else:       
-            raise ValidationError("No existe la plantilla de correo email_template_edi_invoice_dian para el email")
-                    
 
     @api.multi
     def _generate_SignatureValue_GetStatus(self, document_repository, password, data_xml_SignedInfo_generate, archivo_pem, archivo_certificado):
@@ -811,7 +657,7 @@ class DianDocument(models.Model):
         KeyInfo = etree.fromstring(data_xml_signature)
         KeyInfo = etree.tostring(KeyInfo[2])
         KeyInfo = KeyInfo.decode()
-        if data_constants_document['InvoiceTypeCode'] in ('01','03'): # Factura
+        if data_constants_document['InvoiceTypeCode'] == '01': # Factura
             xmlns = 'xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
             KeyInfo = KeyInfo.replace('xmlns:ds="http://www.w3.org/2000/09/xmldsig#"', '%s' % xmlns )
         if data_constants_document['InvoiceTypeCode'] == '91': # Nota de crédito
@@ -830,7 +676,7 @@ class DianDocument(models.Model):
         SignedProperties = etree.fromstring(SignedProperties)
         SignedProperties = etree.tostring(SignedProperties[0])
         SignedProperties = SignedProperties.decode()
-        if data_constants_document['InvoiceTypeCode'] in ('01','03'):
+        if data_constants_document['InvoiceTypeCode'] == '01':
             xmlns = 'xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" xmlns:xades141="http://uri.etsi.org/01903/v1.4.1#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
             SignedProperties = SignedProperties.replace('xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" xmlns:xades141="http://uri.etsi.org/01903/v1.4.1#" xmlns:ds="http://www.w3.org/2000/09/xmldsig#"', '%s' % xmlns )
         if data_constants_document['InvoiceTypeCode'] == '91':
@@ -845,7 +691,7 @@ class DianDocument(models.Model):
         Signedinfo = etree.fromstring(data_xml_signature)
         Signedinfo = etree.tostring(Signedinfo[0])
         Signedinfo = Signedinfo.decode()
-        if data_constants_document['InvoiceTypeCode'] in ('01','03'):
+        if data_constants_document['InvoiceTypeCode'] == '01':
             xmlns = 'xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
             Signedinfo = Signedinfo.replace('xmlns:ds="http://www.w3.org/2000/09/xmldsig#"', '%s' % xmlns )
         if data_constants_document['InvoiceTypeCode'] == '91':
@@ -910,7 +756,7 @@ class DianDocument(models.Model):
         return dian_constants
 
 
-    def _generate_data_constants_document(self, data_header_doc, dian_constants, document_type, in_contingency_4):
+    def _generate_data_constants_document(self, data_header_doc, dian_constants):
         NitSinDV = dian_constants['NitSinDV']
         data_constants_document = {}
         data_resolution  = self._get_resolution_dian(data_header_doc)
@@ -923,8 +769,7 @@ class DianDocument(models.Model):
         data_constants_document['Prefix'] = data_resolution['Prefix']                                                       # Prefijo de número de factura
         data_constants_document['From'] = data_resolution['From']                                                           # Desde la secuencia
         data_constants_document['To'] = data_resolution['To']                                                               # Hasta la secuencia
-        data_constants_document['InvoiceID'] = data_resolution['InvoiceID'] 
-        data_constants_document['ContingencyID'] = data_resolution['ContingencyID'] if document_type == 'contingency' else ' '                                               # Número de documento dian
+        data_constants_document['InvoiceID'] = data_resolution['InvoiceID']                                                 # Número de documento dian
         data_constants_document['Nonce'] = self._generate_nonce(data_resolution['InvoiceID'], dian_constants['SeedCode'])   # semilla para generar números aleatorios
         data_constants_document['TechnicalKey'] = data_resolution['TechnicalKey']                                           # Clave técnica de la resolución de rango
         data_constants_document['LineExtensionAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed)   # Total Importe bruto antes de impuestos: Total importe bruto, suma de los importes brutos de las líneas de la factura.
@@ -932,12 +777,12 @@ class DianDocument(models.Model):
         #data_constants_document['TotalTaxInclusiveAmount'] = self._caculate_TotalTaxInclusiveAmount(data_header_doc.amount_untaxed, data_header_doc.id)
 
         data_constants_document['TotalTaxInclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_without_wh_tax) 
-        #data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed if data_header_doc.amount_tax != 0.00 else 0.00)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
+        data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed if data_header_doc.amount_tax != 0.00 else 0.00)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
         
-        data_constants_document['TaxExclusiveAmount'] = self._caculate_TaxExclusiveAmount(data_header_doc.id)
+        #data_constants_document['TaxExclusiveAmount'] = self._caculate_TaxExclusiveAmount(data_header_doc.id)
         
         #data_constants_document['TotalTaxInclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_total) 
-        data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_constants_document['TaxExclusiveAmount'])    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
+        #data_constants_document['TaxExclusiveAmount'] = self._complements_second_decimal(data_header_doc.amount_untaxed)    # Total Base Imponible (Importe Bruto+Cargos-Descuentos): Base imponible para el cálculo de los impuestos
         # Valor Bruto más tributos - Valor del Descuento Total + Valor del Cargo Total - Valor del Anticipo Total
         data_constants_document['PayableAmount'] = self._complements_second_decimal(data_header_doc.amount_without_wh_tax)   # Total de Factura: Total importe bruto + Total Impuestos-Total Impuesto Retenidos
         #data_constants_document['PayableAmount'] = self._complements_second_decimal(data_header_doc.amount_total)           # Total de Factura: Total importe bruto + Total Impuestos-Total Impuesto Retenidos
@@ -946,9 +791,9 @@ class DianDocument(models.Model):
         data_constants_document['IssueDateSend'] = date_invoice_cufe['IssueDateSend']
         data_constants_document['IssueDateCufe'] = date_invoice_cufe['IssueDateCufe']
         data_constants_document['IssueTime'] = self._get_time_colombia()                                                             # Hora de emisión de la fcatura
-        data_constants_document['InvoiceTypeCode'] = self._get_doctype(data_header_doc.type, data_header_doc.is_debit_note, in_contingency_4)
-        data_constants_document['CreditNoteTypeCode'] = self._get_doctype(data_header_doc.type, data_header_doc.is_debit_note, in_contingency_4)
-        data_constants_document['DebitNoteTypeCode'] = self._get_doctype(data_header_doc.type, data_header_doc.is_debit_note, in_contingency_4)                                 # Tipo de Factura, código: facturas de venta, y transcripciones; tipo = 1 para factura de venta 
+        data_constants_document['InvoiceTypeCode'] = self._get_doctype(data_header_doc.type, data_header_doc.is_debit_note)
+        data_constants_document['CreditNoteTypeCode'] = self._get_doctype(data_header_doc.type, data_header_doc.is_debit_note)
+        data_constants_document['DebitNoteTypeCode'] = self._get_doctype(data_header_doc.type, data_header_doc.is_debit_note)                                 # Tipo de Factura, código: facturas de venta, y transcripciones; tipo = 1 para factura de venta 
         data_constants_document['LineCountNumeric'] = self._get_lines_invoice(data_header_doc.id)
         data_constants_document['TaxSchemeID'] = data_header_doc.partner_id.tribute_id.code
         data_constants_document['TaxSchemeName'] = data_header_doc.partner_id.tribute_id.name
@@ -973,9 +818,6 @@ class DianDocument(models.Model):
         data_constants_document['CustomerschemeID'] = data_header_doc.partner_id.dv                         # Digito verificador del NIT
         data_constants_document['Firstname'] = self._replace_character_especial(data_header_doc.partner_id.name)
         # Determina termino de pago 1 Contado 2 Crédito
-        if not data_header_doc.payment_term_id.line_ids:
-            data_constants_document['PaymentMeansID'] =  '1'  
-            data_constants_document['PaymentDueDate'] = data_header_doc.date_invoice
         for line_term_pago in data_header_doc.payment_term_id.line_ids:
             if line_term_pago.days == 0:
                 data_constants_document['PaymentMeansID'] =  '1'  
@@ -997,17 +839,6 @@ class DianDocument(models.Model):
                     data_constants_document['InvoiceReferenceID'] = dian_document_cancel.dian_code
                     data_constants_document['InvoiceReferenceUUID'] = dian_document_cancel.cufe
                     data_constants_document['InvoiceReferenceDate'] = invoice_cancel.date_invoice
-        # Datos contingencia
-        if data_constants_document['InvoiceTypeCode'] == ('03'):
-            #invoice_contingency = self.env['account.invoice'].search([('id', '=', data_header_doc.id),('type', '=', 'out_invoice'),('state_dian_document', '=', 'exitoso')])
-            #if invoice_contingency:
-            #13FEB dian_document_contingency = self.env['dian.document'].search([('state', '=', 'exitoso'),('document_type', '=', 'f'),('id', '=', data_header_doc.diancode_id.id)])
-            #13FEB if dian_document_contingency:
-                #13FEB data_constants_document['ContingencyReferenceID'] = dian_document_contingency.dian_code
-            data_constants_document['ContingencyReferenceID'] = data_header_doc.contingency_invoice_number
-            data_constants_document['ContingencyIssueDate'] = data_header_doc.date_invoice
-            data_constants_document['ContingencyDocumentTypeCode'] = 'FTC'
-
         # Genera identificadores único 
         identifier = uuid.uuid4()
         data_constants_document['identifier'] = identifier
@@ -1035,13 +866,13 @@ class DianDocument(models.Model):
         return fiscal_responsability_codes
 
 
-    def _caculate_TaxExclusiveAmount(self, invoice_id):
-        amount_untaxed = 0.00
-        data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
-        for data_line_doc in data_lines_doc:
-            if data_line_doc.invoice_line_tax_ids:
-                amount_untaxed += data_line_doc.price_subtotal
-        return amount_untaxed
+    # def _caculate_TaxExclusiveAmount(self, invoice_id):
+    #     amount_untaxed = 0.00
+    #     data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
+    #     for data_line_doc in data_lines_doc:
+    #         if data_line_doc.invoice_line_tax_ids:
+    #             amount_untaxed += data_line_doc.price_subtotal
+    #     return amount_untaxed
 
 
     # def _caculate_TotalTaxInclusiveAmount(self, amount_untaxed, invoice_id):
@@ -1300,257 +1131,9 @@ class DianDocument(models.Model):
             'TotalTaxExclusiveAmount' : dcd['TaxExclusiveAmount'],
             'TotalTaxInclusiveAmount' : dcd['TotalTaxInclusiveAmount'],
             'PayableAmount' : dcd['PayableAmount'], 
-            'data_lines_xml' : data_lines_xml
+            'data_lines_xml' : data_lines_xml,
             }
         return template_basic_data_fe_xml
-
-
-    def _template_basic_data_contingencia_xml(self):
-        template_basic_data_contingencia_xml = """
-<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2    http://docs.oasis-open.org/ubl/os-UBL-2.1/xsd/maindoc/UBL-Invoice-2.1.xsd">
-    <ext:UBLExtensions>
-        <ext:UBLExtension>
-            <ext:ExtensionContent>
-                <sts:DianExtensions>
-                    <sts:InvoiceControl>
-                        <sts:InvoiceAuthorization>%(InvoiceAuthorization)s</sts:InvoiceAuthorization>
-                        <sts:AuthorizationPeriod>
-                            <cbc:StartDate>%(StartDate)s</cbc:StartDate>
-                            <cbc:EndDate>%(EndDate)s</cbc:EndDate>
-                        </sts:AuthorizationPeriod>
-                        <sts:AuthorizedInvoices>
-                            <sts:Prefix>%(Prefix)s</sts:Prefix>
-                            <sts:From>%(From)s</sts:From>
-                            <sts:To>%(To)s</sts:To>
-                        </sts:AuthorizedInvoices>
-                    </sts:InvoiceControl>
-                    <sts:InvoiceSource>
-                        <cbc:IdentificationCode listAgencyID="6" listAgencyName="United Nations Economic Commission for Europe" listSchemeURI="urn:oasis:names:specification:ubl:codelist:gc:CountryIdentificationCode-2.1">%(IdentificationCode)s</cbc:IdentificationCode>
-                    </sts:InvoiceSource>
-                    <sts:SoftwareProvider>
-                        <sts:ProviderID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(schemeID)s" schemeName="31">%(ProviderID)s</sts:ProviderID>
-                        <sts:SoftwareID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)">%(SoftwareID)s</sts:SoftwareID>
-                    </sts:SoftwareProvider>
-                    <sts:SoftwareSecurityCode schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)">%(SoftwareSecurityCode)s</sts:SoftwareSecurityCode>
-                    <sts:AuthorizationProvider>
-                        <sts:AuthorizationProviderID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="4" schemeName="31">800197268</sts:AuthorizationProviderID>
-                    </sts:AuthorizationProvider>
-                    <sts:QRCode>URL=https://catalogo-vpfe-hab.dian.gov.co/document/searchqr?documentKey=%(UUID)s</sts:QRCode>
-                </sts:DianExtensions>
-            </ext:ExtensionContent>
-        </ext:UBLExtension>   
-        <ext:UBLExtension>
-            <ext:ExtensionContent></ext:ExtensionContent>
-        </ext:UBLExtension>
-    </ext:UBLExtensions>
-   <cbc:UBLVersionID>%(UBLVersionID)s</cbc:UBLVersionID>
-   <cbc:CustomizationID>%(CustomizationID)s</cbc:CustomizationID>
-   <cbc:ProfileID>%(ProfileID)s</cbc:ProfileID>
-   <cbc:ProfileExecutionID>%(ProfileExecutionID)s</cbc:ProfileExecutionID>
-   <cbc:ID>%(ContingencyID)s</cbc:ID>
-   <cbc:UUID schemeID="%(ProfileExecutionID)s" schemeName="CUDE-SHA384">%(UUID)s</cbc:UUID>
-   <cbc:IssueDate>%(IssueDate)s</cbc:IssueDate>
-   <cbc:IssueTime>%(IssueTime)s</cbc:IssueTime>
-   <cbc:InvoiceTypeCode>%(InvoiceTypeCode)s</cbc:InvoiceTypeCode>
-   <cbc:DocumentCurrencyCode>%(DocumentCurrencyCode)s</cbc:DocumentCurrencyCode>
-   <cbc:LineCountNumeric>%(LineCountNumeric)s</cbc:LineCountNumeric>
-   <cac:AdditionalDocumentReference> 
-      <cbc:ID>%(ContingencyReferenceID)s</cbc:ID>
-      <cbc:IssueDate>%(ContingencyIssueDate)s</cbc:IssueDate>
-      <cbc:DocumentTypeCode>%(ContingencyDocumentTypeCode)s</cbc:DocumentTypeCode>
-   </cac:AdditionalDocumentReference>
-   <cac:AccountingSupplierParty>
-      <cbc:AdditionalAccountID>%(SupplierAdditionalAccountID)s</cbc:AdditionalAccountID>
-      <cac:Party>
-         <cac:PartyName>
-            <cbc:Name>%(SupplierPartyName)s</cbc:Name>
-         </cac:PartyName>
-         <cac:PhysicalLocation>
-            <cac:Address>
-               <cbc:ID>%(SupplierCityCode)s</cbc:ID>
-               <cbc:CityName>%(SupplierCityName)s</cbc:CityName>
-               <cbc:CountrySubentity>%(SupplierCountrySubentity)s</cbc:CountrySubentity>
-               <cbc:CountrySubentityCode>%(SupplierCountrySubentityCode)s</cbc:CountrySubentityCode>
-               <cac:AddressLine>
-                  <cbc:Line>%(SupplierLine)s</cbc:Line>
-               </cac:AddressLine>
-               <cac:Country>
-                  <cbc:IdentificationCode>%(SupplierCountryCode)s</cbc:IdentificationCode>
-                  <cbc:Name languageID="es">%(SupplierCountryName)s</cbc:Name>
-               </cac:Country>
-            </cac:Address>
-         </cac:PhysicalLocation>
-         <cac:PartyTaxScheme>
-            <cbc:RegistrationName>%(SupplierPartyName)s</cbc:RegistrationName>
-            <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(schemeID)s" schemeName="31">%(ProviderID)s</cbc:CompanyID>
-            <cbc:TaxLevelCode listName="48">%(SupplierTaxLevelCode)s</cbc:TaxLevelCode>
-            <cac:RegistrationAddress>
-               <cbc:ID>%(SupplierCityCode)s</cbc:ID>
-               <cbc:CityName>%(SupplierCityName)s</cbc:CityName>
-               <cbc:CountrySubentity>%(SupplierCountrySubentity)s</cbc:CountrySubentity>
-               <cbc:CountrySubentityCode>%(SupplierCountrySubentityCode)s</cbc:CountrySubentityCode>
-               <cac:AddressLine>
-                  <cbc:Line>%(SupplierLine)s</cbc:Line>
-               </cac:AddressLine>
-               <cac:Country>
-                  <cbc:IdentificationCode>%(SupplierCountryCode)s</cbc:IdentificationCode>
-                  <cbc:Name languageID="es">%(SupplierCountryName)s</cbc:Name>
-               </cac:Country>
-            </cac:RegistrationAddress>
-            <cac:TaxScheme>
-               <cbc:ID>%(TaxSchemeID)s</cbc:ID>
-               <cbc:Name>%(TaxSchemeName)s</cbc:Name>
-            </cac:TaxScheme>
-         </cac:PartyTaxScheme>
-         <cac:PartyLegalEntity>
-            <cbc:RegistrationName>%(SupplierPartyName)s</cbc:RegistrationName>
-            <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(schemeID)s" schemeName="31">%(ProviderID)s</cbc:CompanyID>
-            <cac:CorporateRegistrationScheme>
-               <cbc:ID>%(Prefix)s</cbc:ID>
-            </cac:CorporateRegistrationScheme>
-         </cac:PartyLegalEntity>
-         <cac:Contact>
-           <cbc:ElectronicMail>%(SupplierElectronicMail)s</cbc:ElectronicMail>
-         </cac:Contact>   
-      </cac:Party>
-   </cac:AccountingSupplierParty>
-   <cac:AccountingCustomerParty>
-      <cbc:AdditionalAccountID>%(CustomerAdditionalAccountID)s</cbc:AdditionalAccountID>
-      <cac:Party>
-         <cac:PartyName>
-            <cbc:Name>%(CustomerPartyName)s</cbc:Name>
-         </cac:PartyName>
-         <cac:PhysicalLocation>
-            <cac:Address>
-               <cbc:ID>%(CustomerCityCode)s</cbc:ID>
-               <cbc:CityName>%(CustomerCityName)s</cbc:CityName>
-               <cbc:CountrySubentity>%(CustomerCountrySubentity)s</cbc:CountrySubentity>
-               <cbc:CountrySubentityCode>%(CustomerCountrySubentityCode)s</cbc:CountrySubentityCode>
-               <cac:AddressLine>
-                  <cbc:Line>%(CustomerLine)s</cbc:Line>
-               </cac:AddressLine>
-               <cac:Country>
-                  <cbc:IdentificationCode>%(CustomerCountryCode)s</cbc:IdentificationCode>
-                  <cbc:Name languageID="es">%(CustomerCountryName)s</cbc:Name>
-               </cac:Country>
-            </cac:Address>
-         </cac:PhysicalLocation>
-         <cac:PartyTaxScheme>
-            <cbc:RegistrationName>%(CustomerPartyName)s</cbc:RegistrationName>
-            <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(CustomerschemeID)s" schemeName="31">%(CustomerID)s</cbc:CompanyID>
-            <cbc:TaxLevelCode listName="48">%(CustomerTaxLevelCode)s</cbc:TaxLevelCode>
-            <cac:RegistrationAddress>
-               <cbc:ID>%(CustomerCityCode)s</cbc:ID>
-               <cbc:CityName>%(CustomerCityName)s</cbc:CityName>
-               <cbc:CountrySubentity>%(CustomerCountrySubentity)s</cbc:CountrySubentity>
-               <cbc:CountrySubentityCode>%(CustomerCountrySubentityCode)s</cbc:CountrySubentityCode>
-               <cac:AddressLine>
-                  <cbc:Line>%(CustomerLine)s</cbc:Line>
-               </cac:AddressLine>
-               <cac:Country>
-                  <cbc:IdentificationCode>%(CustomerCountryCode)s</cbc:IdentificationCode>
-                  <cbc:Name languageID="es">%(CustomerCountryName)s</cbc:Name>
-               </cac:Country>
-            </cac:RegistrationAddress>
-            <cac:TaxScheme>
-               <cbc:ID>%(TaxSchemeID)s</cbc:ID>
-               <cbc:Name>%(TaxSchemeName)s</cbc:Name>
-            </cac:TaxScheme>
-         </cac:PartyTaxScheme>
-         <cac:PartyLegalEntity>
-            <cbc:RegistrationName>%(CustomerPartyName)s</cbc:RegistrationName>
-            <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(CustomerschemeID)s" schemeName="31">%(CustomerID)s</cbc:CompanyID>
-        </cac:PartyLegalEntity>
-        <cac:Contact>
-           <cbc:ElectronicMail>%(CustomerElectronicMail)s</cbc:ElectronicMail>
-        </cac:Contact>
-        <cac:Person>
-           <cbc:FirstName>%(Firstname)s</cbc:FirstName>
-        </cac:Person>
-      </cac:Party>
-   </cac:AccountingCustomerParty>
-   <cac:PaymentMeans>
-      <cbc:ID>%(PaymentMeansID)s</cbc:ID>
-      <cbc:PaymentMeansCode>%(PaymentMeansCode)s</cbc:PaymentMeansCode>
-      <cbc:PaymentDueDate>%(PaymentDueDate)s</cbc:PaymentDueDate>
-      <cbc:PaymentID>1234</cbc:PaymentID>      
-   </cac:PaymentMeans>%(data_taxs_xml)s
-   <cac:LegalMonetaryTotal>
-      <cbc:LineExtensionAmount currencyID="COP">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
-      <cbc:TaxExclusiveAmount currencyID="COP">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
-      <cbc:TaxInclusiveAmount currencyID="COP">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
-      <cbc:PayableAmount currencyID="COP">%(PayableAmount)s</cbc:PayableAmount>
-   </cac:LegalMonetaryTotal>%(data_lines_xml)s
-</Invoice>
-"""
-        return template_basic_data_contingencia_xml
-
-
-    def _generate_data_contingencia_document_xml(self, template_basic_data_contingencia_xml, dc, dcd, data_taxs_xml, data_lines_xml, CUFE, data_xml_signature):
-        template_basic_data_contingencia_xml = template_basic_data_contingencia_xml % {'InvoiceAuthorization' : dcd['InvoiceAuthorization'],
-            'StartDate' : dcd['StartDate'],
-            'EndDate' : dcd['EndDate'],
-            'Prefix' : dcd['Prefix'],
-            'From' : dcd['From'],
-            'To' : dcd['To'],
-            'IdentificationCode' : dc['IdentificationCode'],
-            'ProviderID' : dc['ProviderID'],
-            'SoftwareID' : dc['SoftwareID'],
-            'SoftwareSecurityCode' : dc['SoftwareSecurityCode'],
-            'UUID' : CUFE,            
-            'UBLVersionID' : dc['UBLVersionID'],
-            'CustomizationID' : dc['CustomizationID'],
-            'ProfileID' : dc['ProfileID'], 
-            'ProfileExecutionID' : dc['ProfileExecutionID'],                       
-            'ContingencyID' : dcd['ContingencyID'],            
-            'IssueDate' : dcd['IssueDate'],
-            'IssueTime' : dcd['IssueTime'],
-            'InvoiceTypeCode' : dcd['InvoiceTypeCode'],
-            'DocumentCurrencyCode' : dcd['DocumentCurrencyCode'],
-            'LineCountNumeric' : dcd['LineCountNumeric'],
-            'SupplierAdditionalAccountID' : dc['SupplierAdditionalAccountID'],
-            'SupplierPartyName' : dc['SupplierPartyName'],
-            'SupplierCityCode' : dc['SupplierCityCode'],
-            'SupplierCityName' : dc['SupplierCityName'],
-            'SupplierCountrySubentity' : dc['SupplierCountrySubentity'],
-            'SupplierCountrySubentityCode' : dc['SupplierCountrySubentityCode'],
-            'SupplierLine' : dc['SupplierLine'],
-            'SupplierCountryCode' : dc['SupplierCountryCode'],
-            'SupplierCountryName' : dc['SupplierCountryName'],
-            'schemeID' : dc['schemeID'],
-            'SupplierTaxLevelCode' : dc['SupplierTaxLevelCode'],
-            'TaxSchemeID' : dcd['TaxSchemeID'],
-            'TaxSchemeName' : dcd['TaxSchemeName'],
-            'SupplierElectronicMail' : dc['SupplierElectronicMail'],
-            'CustomerAdditionalAccountID' : dcd['CustomerAdditionalAccountID'],
-            'CustomerPartyName' : dcd['CustomerPartyName'],
-            'CustomerschemeID' : dcd['CustomerschemeID'],
-            'CustomerCityCode' : dcd['CustomerCityCode'],
-            'CustomerCityName' : dcd['CustomerCityName'],
-            'CustomerCountrySubentity' : dcd['CustomerCountrySubentity'],
-            'CustomerCountrySubentityCode' : dcd['CustomerCountrySubentityCode'],
-            'CustomerLine' : dcd['CustomerLine'],
-            'CustomerCountryCode' : dcd['CustomerCountryCode'],            
-            'CustomerCountryName' : dcd['CustomerCountryName'],
-            'CustomerSchemeID' : dcd['CustomerSchemeID'],
-            'CustomerID' : dcd['CustomerID'],
-            'CustomerTaxLevelCode' : dcd['CustomerTaxLevelCode'],
-            'CustomerElectronicMail' : dcd['CustomerElectronicMail'],
-            'Firstname' : dcd['Firstname'],
-            'PaymentMeansID' : dcd['PaymentMeansID'], 
-            'PaymentMeansCode' : dcd['PaymentMeansCode'], 
-            'PaymentDueDate' : dcd['PaymentDueDate'],
-            'data_taxs_xml' : data_taxs_xml,
-            'TotalLineExtensionAmount' : dcd['LineExtensionAmount'],
-            'TotalTaxExclusiveAmount' : dcd['TaxExclusiveAmount'],
-            'TotalTaxInclusiveAmount' : dcd['TotalTaxInclusiveAmount'],
-            'PayableAmount' : dcd['PayableAmount'], 
-            'data_lines_xml' : data_lines_xml,
-            'ContingencyReferenceID' : dcd['ContingencyReferenceID'],  
-            'ContingencyDocumentTypeCode' : dcd['ContingencyDocumentTypeCode'],
-            'ContingencyIssueDate' : dcd['ContingencyIssueDate']
-            }
-        return template_basic_data_contingencia_xml
 
 
     def _template_basic_data_nc_xml(self):
@@ -2069,7 +1652,6 @@ class DianDocument(models.Model):
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Description>%(ILDescription)s</cbc:Description>
-            %(InformationContentProviderParty)s
         </cac:Item>
         <cac:Price>
             <cbc:PriceAmount currencyID="COP">%(ILPriceAmount)s</cbc:PriceAmount>
@@ -2118,7 +1700,6 @@ class DianDocument(models.Model):
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Description>%(ILDescription)s</cbc:Description>
-            %(InformationContentProviderParty)s
         </cac:Item>
         <cac:Price>
             <cbc:PriceAmount currencyID="COP">%(ILPriceAmount)s</cbc:PriceAmount>
@@ -2150,7 +1731,6 @@ class DianDocument(models.Model):
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Description>%(ILDescription)s</cbc:Description>
-            %(InformationContentProviderParty)s
         </cac:Item>
         <cac:Price>
             <cbc:PriceAmount currencyID="COP">%(ILPriceAmount)s</cbc:PriceAmount>
@@ -2366,69 +1946,45 @@ class DianDocument(models.Model):
         template_InvoiceLineTaxSubtotal_xml = self._template_InvoiceLineTaxSubtotal_xml()
         data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
         for data_line in data_lines_doc:
-            if data_line.price_subtotal:
-                ILLinea += 1
-                ILInvoicedQuantity = self._complements_second_decimal(data_line.quantity)           # 13.1.1.9 - Cantidad: Cantidad del artículo solicitado. Número de unidades servidas/prestadas.
-                ILLineExtensionAmount = self._complements_second_decimal(data_line.price_subtotal)  # 13.1.1.12 - Costo Total: Coste Total. Resultado: Unidad de Medida x Precio Unidad.
-                ILChargeIndicator = 'true'                                                          # Indica que el elemento es un Cargo (5.1.1) y no un descuento (4.1.1)
-                ILAmount =  self._complements_second_decimal(data_line.discount)                    # Valor Descuento: Importe total a descontar.
-                ILDescription = self._replace_character_especial(data_line.name)
-                ILPriceAmount = self._complements_second_decimal(data_line.price_unit)              # Precio Unitario   
-               
-                # Valor del tributo
-                ILTaxAmount = 0.00
-                InvoiceLineTaxSubtotal_xml = ''
-                for line_tax in data_line.invoice_line_tax_ids:
-                    tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
-                    #ILTaxAmount += data_line.price_subtotal * (tax.amount / 100.00)
-                    ILTaxAmount += data_line.price_total - data_line.price_subtotal
-                    ILTaxAmount  = float(self._complements_second_decimal_total(ILTaxAmount))
-                    # print('--------------------------------------------------------------')
-                    # print('data_line.price_total ', data_line.price_total)
-                    # print('data_line.price_subtotal ',  data_line.price_subtotal)
-                    # print('ILTaxAmount ', ILTaxAmount)
-                    # print('Formula ', data_line.price_total - data_line.price_subtotal)
-                    # print('--------------------------------------------------------------')                     
-                    #ILTaxAmountSubtotal = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))
-                    #ILTaxAmountSubtotal = data_line.price_total - data_line.price_subtotal
-                    ILTaxAmountSubtotal = self._complements_second_decimal_total(data_line.price_total - data_line.price_subtotal)
-                    ILTaxableAmount = self._complements_second_decimal(data_line.price_subtotal)
-                    ILPercent  = self._complements_second_decimal(tax.amount)
-                    ILID = tax.tributes              
-                    ILName = tributes[tax.tributes]  
-                    # Nuevo ini 
-                    InvoiceLineTaxSubtotal_xml += template_InvoiceLineTaxSubtotal_xml % {
-                                                            'ILTaxAmountSubtotal' : ILTaxAmountSubtotal,
-                                                            'ILTaxableAmount' : ILTaxableAmount,
-                                                            'ILPercent' : ILPercent,
-                                                            'ILID' : ILID,
-                                                            'ILName' : ILName,                                                        
-                                                            } 
-                    # Nuevo fin 
-                ILTaxAmount = self._complements_second_decimal_total(ILTaxAmount)
-                InformationContentProviderParty = ''
-                if data_line.product_id.product_tmpl_id.operation_type == '11':
-                    InformationContentProviderParty = self._template_line_data_information_content_provider_party_xml()
-
-                    if not data_line.invoice_id.mandante_id:
-                        raise ValidationError(_(u'El Propietario o Mandante no se encuentra seleccionado, en la pestaña otra información puede seleccionarlo'))
-
-                    InformationContentProviderParty = InformationContentProviderParty % {
-                        'MandanteNumberIdentification' : data_line.invoice_id.mandante_id.xidentification,
-                    }
-
-
-                data_line_xml += template_line_data_xml % {'ILLinea' : ILLinea,
-                                                        'ILInvoicedQuantity' : ILInvoicedQuantity,
-                                                        'ILLineExtensionAmount' : ILLineExtensionAmount, # Ojo descuentos mas recargos de la linea
-                                                        'ILAmount' : ILAmount,
-                                                        'ILDescription' : ILDescription,
-                                                        'ILPriceAmount' : ILPriceAmount,
-                                                        'ILChargeIndicator' : ILChargeIndicator,
-                                                        'ILTaxAmount' : ILTaxAmount,
-                                                        'InvoiceLineTaxSubtotal' : InvoiceLineTaxSubtotal_xml,
-                                                        'InformationContentProviderParty' : InformationContentProviderParty                                                       
-                                                        }
+            ILLinea += 1
+            ILInvoicedQuantity = self._complements_second_decimal(data_line.quantity)           # 13.1.1.9 - Cantidad: Cantidad del artículo solicitado. Número de unidades servidas/prestadas.
+            ILLineExtensionAmount = self._complements_second_decimal(data_line.price_subtotal)  # 13.1.1.12 - Costo Total: Coste Total. Resultado: Unidad de Medida x Precio Unidad.
+            ILChargeIndicator = 'true'                                                          # Indica que el elemento es un Cargo (5.1.1) y no un descuento (4.1.1)
+            ILAmount =  self._complements_second_decimal(data_line.discount)                    # Valor Descuento: Importe total a descontar.
+            ILDescription = self._replace_character_especial(data_line.name)
+            ILPriceAmount = self._complements_second_decimal(data_line.price_unit)              # Precio Unitario   
+           
+            # Valor del tributo
+            ILTaxAmount = 0.00
+            InvoiceLineTaxSubtotal_xml = ''
+            for line_tax in data_line.invoice_line_tax_ids:
+                tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
+                ILTaxAmount += data_line.price_subtotal * (tax.amount / 100.00)
+                ILTaxAmountSubtotal = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))
+                ILTaxableAmount = self._complements_second_decimal(data_line.price_subtotal)
+                ILPercent  = self._complements_second_decimal(tax.amount)
+                ILID = tax.tributes              
+                ILName = tributes[tax.tributes]  
+                # Nuevo ini 
+                InvoiceLineTaxSubtotal_xml += template_InvoiceLineTaxSubtotal_xml % {
+                                                        'ILTaxAmountSubtotal' : ILTaxAmountSubtotal,
+                                                        'ILTaxableAmount' : ILTaxableAmount,
+                                                        'ILPercent' : ILPercent,
+                                                        'ILID' : ILID,
+                                                        'ILName' : ILName,                                                        
+                                                        } 
+                # Nuevo fin 
+            ILTaxAmount = self._complements_second_decimal(ILTaxAmount)
+            data_line_xml += template_line_data_xml % {'ILLinea' : ILLinea,
+                                                    'ILInvoicedQuantity' : ILInvoicedQuantity,
+                                                    'ILLineExtensionAmount' : ILLineExtensionAmount, # Ojo descuentos mas recargos de la linea
+                                                    'ILAmount' : ILAmount,
+                                                    'ILDescription' : ILDescription,
+                                                    'ILPriceAmount' : ILPriceAmount,
+                                                    'ILChargeIndicator' : ILChargeIndicator,
+                                                    'ILTaxAmount' : ILTaxAmount,
+                                                    'InvoiceLineTaxSubtotal' : InvoiceLineTaxSubtotal_xml,                                                    
+                                                    }
         return data_line_xml
 
 
@@ -2456,24 +2012,11 @@ class DianDocument(models.Model):
             InvoiceLineTaxSubtotal_xml = ''
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
-                #ILTaxAmount = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))
-                #ILTaxAmount = self._complements_second_decimal(data_line.price_total - data_line.price_subtotal)
-                ILTaxAmount = self._complements_second_decimal_total(data_line.price_total - data_line.price_subtotal)
+                ILTaxAmount = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))
                 ILTaxableAmount = self._complements_second_decimal(data_line.price_subtotal)
                 ILPercent  = self._complements_second_decimal(tax.amount)
                 ILID = tax.tributes              
                 ILName = tributes[tax.tributes]  
-
-            InformationContentProviderParty = ''
-            if data_line.product_id.product_tmpl_id.operation_type == '11':
-                InformationContentProviderParty = self._template_line_data_information_content_provider_party_xml()
-
-                if not data_line.invoice_id.mandante_id:
-                    raise ValidationError(_(u'El Propietario o Mandante no se encuentra seleccionado, en la pestaña otra información puede seleccionarlo'))
-
-                InformationContentProviderParty = InformationContentProviderParty % {
-                    'MandanteNumberIdentification' : data_line.invoice_id.mandante_id.xidentification,
-                }
 
             data_credit_note_line_xml += template_credit_line_data_xml % {'ILLinea' : ILLinea,
                                                     'ILInvoicedQuantity' : ILInvoicedQuantity,
@@ -2487,7 +2030,6 @@ class DianDocument(models.Model):
                                                     'ILPercent' : ILPercent,
                                                     'ILID' : ILID,
                                                     'ILName' : ILName,
-                                                    'InformationContentProviderParty' : InformationContentProviderParty
                                                     }
         return data_credit_note_line_xml
 
@@ -2515,24 +2057,11 @@ class DianDocument(models.Model):
             InvoiceLineTaxSubtotal_xml = ''
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
-                #ILTaxAmount = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))
-                #ILTaxAmount = self._complements_second_decimal(data_line.price_total - data_line.price_subtotal)
-                ILTaxAmount  = self._complements_second_decimal_total(data_line.price_total - data_line.price_subtotal)
+                ILTaxAmount = self._complements_second_decimal(data_line.price_subtotal * (tax.amount / 100.00))
                 ILTaxableAmount = self._complements_second_decimal(data_line.price_subtotal)
                 ILPercent  = self._complements_second_decimal(tax.amount)
                 ILID = tax.tributes              
                 ILName = tributes[tax.tributes]  
-
-            InformationContentProviderParty = ''
-            if data_line.product_id.product_tmpl_id.operation_type == '11':
-                InformationContentProviderParty = self._template_line_data_information_content_provider_party_xml()
-
-                if not data_line.invoice_id.mandante_id:
-                    raise ValidationError(_(u'El Propietario o Mandante no se encuentra seleccionado, en la pestaña otra información puede seleccionarlo'))
-
-                InformationContentProviderParty = InformationContentProviderParty % {
-                    'MandanteNumberIdentification' : data_line.invoice_id.mandante_id.xidentification,
-                }
 
             data_debit_note_line_xml += template_debit_line_data_xml % {'ILLinea' : ILLinea,
                                                     'ILInvoicedQuantity' : ILInvoicedQuantity,
@@ -2546,7 +2075,6 @@ class DianDocument(models.Model):
                                                     'ILPercent' : ILPercent,
                                                     'ILID' : ILID,
                                                     'ILName' : ILName,
-                                                    'InformationContentProviderParty' : InformationContentProviderParty                                                    
                                                     }
 
 
@@ -2711,19 +2239,12 @@ class DianDocument(models.Model):
 
 
     @api.model
-    def _get_doctype(self, doctype, is_debit_note, in_contingency_4):        
-        if doctype == 'out_invoice' and is_debit_note == False: # Es una factura
-            if self.contingency_3 == False and self.contingency_4 == False  and in_contingency_4 == False:
-                docdian = '01'
-            elif self.contingency_3 == True and in_contingency_4 == False:
-                docdian = '03' 
-            elif self.contingency_4 == True and in_contingency_4 == False:
-                docdian = '04'
-            elif in_contingency_4 == True:
-                docdian = '04'
-        if doctype == 'out_refund':
+    def _get_doctype(self, doctype, is_debit_note):
+        if doctype == 'out_invoice' and is_debit_note == False:
+            docdian = '01'
+        elif doctype == 'out_refund':
             docdian = '91'
-        if doctype == 'out_invoice' and is_debit_note == True:
+        elif doctype == 'out_invoice' and is_debit_note:
             docdian = '92'
         return docdian
 
@@ -2733,8 +2254,7 @@ class DianDocument(models.Model):
         lines = 0
         move_lines = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
         for move_line in move_lines:
-            if move_line.price_subtotal != 0.00:
-                lines += 1
+            lines += 1
         return lines
 
 
@@ -2899,13 +2419,6 @@ class DianDocument(models.Model):
             amount = str(amount) + '0'
         else: 
             amount = str(amount)
-        #amount = str(int(amount)) + (str((amount - int(amount)))[1:4])
-        return amount
-
-
-    def _complements_second_decimal_total(self, amount):
-        amount = str(int(amount)) + (str((amount - int(amount)))[1:4])
-        amount = self._complements_second_decimal(float(amount))
         return amount
 
 
@@ -3314,31 +2827,3 @@ class DianDocument(models.Model):
                         'identifierTo' : identifierTo,
                         }
         return data_send_xml
-
-
-    def _get_datetime(self):
-        fmt = "%Y-%m-%d %H:%M:%S"
-        date_time_envio = datetime.now(timezone('UTC'))
-        date_time_envio = date_time_envio + timedelta(hours=-5)     
-        date_time_envio = date_time_envio.strftime(fmt) 
-
-        # user = self.env['res.users'].search([('id', '=', self.env.uid)])
-        # company = self.env['res.company'].search([('id', '=', user.company_id.id)])
-        # #company.date_init_contingency_4 = date_time_envio
-        # #company.date_end_contingency_4 = date_time_envio
-
-        # diferencia = company.date_end_contingency_4 - company.date_init_contingency_4
-        # dif_year = company.date_end_contingency_4.year - company.date_init_contingency_4.year
-
-
-
-        # print('-----------------------------------------------------------------')
-        # print('company.date_init_contingency_4 ', company.date_init_contingency_4)
-        # print('company.date_end_contingency_4 ', company.date_end_contingency_4)
-        # print('diferencia ', diferencia)
-        # print('dif_year ', dif_year)
-        # #print('diferencia ', diferencia.minutes)
-        # print('-----------------------------------------------------------------')
-        # print(aaaaaaaaaaa)
-
-        return date_time_envio

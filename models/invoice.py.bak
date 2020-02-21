@@ -9,7 +9,6 @@ class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
     _name = 'account.invoice'
 
-
     diancode_id = fields.Many2one('dian.document', string="Código DIAN", readonly=True)
     state_dian_document = fields.Selection(string="Estado documento DIAN", related='diancode_id.state')
     shipping_response = fields.Selection(string="Respuesta de envío DIAN", related='diancode_id.shipping_response')
@@ -23,41 +22,22 @@ class AccountInvoice(models.Model):
     xml_response_dian = fields.Text(string='Contenido XML de la respuesta DIAN', readonly=True, related = 'diancode_id.xml_response_dian')
     mandante_id = fields.Many2one('res.partner', 'Mandante', domain = [('customer', '=', True)])
 
-    contingency_3 = fields.Boolean(string='Contingencia tipo 3', default=False, help='Cuando el facturador no puede expedir la factura electrónica por inconvenientes tecnológicos')
-    contingency_4 = fields.Boolean(string='Contingencia tipo 4', default=False, help='Cuando las causas son atribuibles a situaciones de índole tecnológico a cargo de la DIAN')
-    # contingency_type = fields.Selection([('no_contingency','Sin contigencia'),
-    #     ('contingency_type3','Contigencia tipo 3 - Cuando el facturador no puede expedir la factura electrónica por inconvenientes tecnológicos'),
-    #     ('contingency_type4','Contigencia tipo 4 - Cuando las causas son atribuibles a situaciones de índole tecnológico a cargo de la DIAN')], 
-    #     string='Tipo de contigencia', required=True, default='no_contingency')
-    xml_response_contingency_dian = fields.Text(string='Mensaje de respuesta DIAN al envío de la contigencia', related='diancode_id.xml_response_contingency_dian')
-    state_contingency = fields.Selection(string="Estatus de contingencia", related='diancode_id.state_contingency')
-    contingency_invoice_number = fields.Char('Número de factura de contigencia')
-    count_error_DIAN =  fields.Integer(string="contador de intentos fallidos por problemas de la DIAN", related='diancode_id.count_error_DIAN')
-    in_contingency_4 = fields.Boolean(string="En contingencia", related='company_id.in_contingency_4')
-    exists_invoice_contingency_4 = fields.Boolean(string="Cantidad de facturas con contingencia 4 sin reportar a la DIAN", related='company_id.exists_invoice_contingency_4')
-    archivo_xml_invoice = fields.Binary('archivo DIAN xml de factura', readonly=True)
-    xml_adjunto_ids = fields.Many2many('ir.attachment', string="Archivo adjunto xml de factura")
-
-
     @api.multi
     def write(self, vals):
-        for invoice in self:
-            before_state = invoice.state
-            super(AccountInvoice, invoice).write(vals)
-            after_state = invoice.state
-            rec_dian_document = self.env['dian.document'].search([('document_id', '=', self.id)])
-            if not rec_dian_document:
-                if before_state == 'draft' and after_state == 'open' and invoice.type == 'out_invoice' and invoice.is_debit_note == False:
-                    new_dian_document = invoice.env['dian.document'].sudo().create({'document_id' : invoice.id, 'document_type' : 'f'})
+        before_state = self.state
+        super(AccountInvoice, self).write(vals)
+        after_state = self.state
 
-                if before_state == 'draft' and after_state == 'open' and invoice.type == 'out_refund':
-                    new_dian_document = invoice.env['dian.document'].sudo().create({'document_id' : invoice.id, 'document_type' : 'c'})
+        if before_state == 'draft' and after_state == 'open' and self.type == 'out_invoice' and self.is_debit_note == False:
+            new_dian_document = self.env['dian.document'].sudo().create({'document_id' : self.id, 'document_type' : 'f'})
 
-                if before_state == 'draft' and after_state == 'open' and invoice.type == 'out_invoice' and invoice.is_debit_note == True:
-                    new_dian_document = invoice.env['dian.document'].sudo().create({'document_id' : invoice.id, 'document_type' : 'd'})
+        if before_state == 'draft' and after_state == 'open' and self.type == 'out_refund':
+            new_dian_document = self.env['dian.document'].sudo().create({'document_id' : self.id, 'document_type' : 'c'})
 
+        if before_state == 'draft' and after_state == 'open' and self.type == 'out_invoice' and self.is_debit_note == True:
+            new_dian_document = self.env['dian.document'].sudo().create({'document_id' : self.id, 'document_type' : 'd'})
+        
         return True
-
 
     @api.multi
     def action_invoice_cancel(self):
@@ -201,6 +181,7 @@ class AccountInvoice(models.Model):
                 mensaje += '- La factura no tiene resolución DIAN asociada.' + '\n'
             rec_resolution_invoice = self.journal_id.sequence_id.dian_resolution_ids.filtered(lambda r: r.active_resolution == True)
 
+
             if not rec_resolution_invoice:
                 mensaje += '- La resolución DIAN asociada a la factura no existe.' + '\n'
             if not rec_resolution_invoice.technical_key:
@@ -301,23 +282,9 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def valitade_dian(self):
-        if self.in_contingency_4:
-            # Documento de ND
-            if self.type == 'out_invoice' and self.is_debit_note == True:
-                raise ValidationError("No puede validar notas de débito mientras se encuentra en estado de contingencia tipo 4")
-            # Documento de NC
-            elif self.type == 'out_refund': 
-                raise ValidationError("No puede validar notas de crédito mientras se encuentra en estado de contingencia tipo 4")
-            if self.state_contingency == 'exitosa':
-                raise ValidationError("Factura de contingencia tipo 4 ya fue enviada al cliente. Una vez se restablezca el servicio, debe pulsar este bóton para enviar la contingencia tipo 4 bota la DIAN")
-
         document_dian = self.env['dian.document'].search([('document_id', '=', self.id)])
         if document_dian.state == ('por_notificar'):
-            if self.in_contingency_4 == True and self.contingency_3 == False:
-                document_type = document_dian.document_type
-            else:
-                document_type = document_dian.document_type if self.contingency_3 == False else 'contingency'
-            document_dian.send_pending_dian(document_dian.id, document_type)
+            document_dian.send_pending_dian(document_dian.id,document_dian.document_type)
         if document_dian.state == 'rechazado':
             document_dian.response_message_dian = ' '
             document_dian.xml_response_dian = ' '
@@ -329,16 +296,9 @@ class AccountInvoice(models.Model):
             document_dian.cufe = ' '
             document_dian.date_document_dian = ' '
             document_dian.write({'state' : 'por_notificar', 'resend' : False})
-            if self.in_contingency_4 == True and self.contingency_3 == False:
-                document_type = document_dian.document_type
-            else:
-                document_type = document_dian.document_type if self.contingency_3 == False else 'contingency'
-            document_dian.send_pending_dian(document_dian.id, document_type)
-        # Determina si existen facturas con contingencias tipo 4 que no han sidoenviadas a la DIAN
-        documents_dian_contingency = self.env['dian.document'].search([('state', '=', 'por_notificar'), ('contingency_4', '=', True), ('document_type', '=', 'f')])
-        company = self.env['res.company'].search([('id', '=', self.company_id.id)])
-        company.exists_invoice_contingency_4 = True if documents_dian_contingency else False
-        return
+            document_dian.send_pending_dian(document_dian.id,document_dian.document_type)
+        # if document_dian.state == 'por_validar':
+        #     document_dian.request_validating_dian(document_dian.id)
 
 
     @api.model
@@ -351,12 +311,6 @@ class AccountInvoice(models.Model):
         return super(AccountInvoice, self).create(vals)
 
  
-    @api.onchange('contingency_3')
-    def _onchange_contingency_3(self):
-        if self.contingency_3 == False:
-            self.contingency_invoice_number = ''
-
-
 class AccountInvoiceReport(models.Model):
     _inherit = "account.invoice.report"
 
@@ -373,3 +327,6 @@ class AccountInvoiceReport(models.Model):
 
     def _group_by(self):
         return super(AccountInvoiceReport, self)._group_by() + ", ai.diancode_id"
+
+
+

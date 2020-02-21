@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data>
+<data>
 
     <template id="report_invoice_document_inherit" inherit_id="l10n_co_tax_extension.report_invoice_document_inherit">
 
@@ -10,7 +10,7 @@
         <div class="row" t-if="o.diancode_id" style="margin-left:0px; margin-top: 25px;">
           <div class="col-xs-2">
             <h2 style="font-size:23px; margin-bottom: 15px; padding-bottom: 15px; margin-top: 20px;">
-                <span t-if="o.diancode_id.document_type == 'f'">Factura de Venta</span>
+                <span t-if="o.diancode_id.document_type == 'f'">Factura Electronica de Venta</span>
                 <span t-if="o.diancode_id.document_type == 'd'">Nota de Débito</span>
                 <span t-if="o.diancode_id.document_type == 'c'">Nota de Crédito</span>
                 <span t-field="o.diancode_id.dian_code"/>
@@ -51,5 +51,15 @@
       </xpath>
 
     </template>
-  </data>
+
+
+    <template id="report_invoice_document_inherit_fe" inherit_id="account.report_invoice_document">
+      <xpath expr="//div//h2/span[1]" position="replace">
+        <br />
+        <span t-if="o.type == 'out_invoice' and (o.state == 'open' or o.state == 'paid')">Factura Electrónica de Venta</span>
+
+      </xpath>
+      
+    </template>
+</data>
 </odoo>

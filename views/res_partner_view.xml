@@ -10,6 +10,26 @@
                 <field name="fiscal_responsability_ids" widget="many2many_tags"/>
                 <field name="tribute_id"/>
             </xpath>
+
+            <xpath expr="//field[@name='street']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='email']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+            <xpath expr="//field[@name='country_id']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='state_id']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='xcity']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+
         </field>
     </record>
 </odoo>

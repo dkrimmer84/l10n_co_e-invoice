@@ -8,7 +8,7 @@
     'category': 'Administration',
     'version': '10.0',
     'depends': [
-        'account', 'l10n_co_tax_extension', 'base'
+        'account', 'l10n_co_tax_extension', 'base', 'contacts'
     ],
     'data': [
         'security/ir.model.access.csv',
@@ -22,6 +22,8 @@
         'views/report_invoice.xml',
         'views/account_view.xml',
         'views/sequence_view.xml',
+        'views/product_view.xml',
+        'views/l10n_cities_co_view.xml'
     ],
 
     'installable' : True
