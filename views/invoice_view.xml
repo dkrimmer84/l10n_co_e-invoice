@@ -26,7 +26,7 @@
                     <field name="exists_invoice_contingency_4" invisible = "1"/>
                     <div class="alert alert-danger" role="alert" style="margin-top:10px;" 
                         attrs="{'invisible' : ['|',('count_error_DIAN', '=', 0),('in_contingency_4', '=', True)]}"> 
-                        Existen problemas tecnológicos de comunicación a cargo de la <b>DIAN</b> para el envío de la factura. Por favor, realice tres intentos más, pulsando nuevamente el botón enviar cada 20 segundos, de no existir respuesta por parte de la DIAN el sistema entrará en contigencia tipo 4.
+                        Existen problemas tecnológicos de comunicación a cargo de la <b>DIAN</b> para el envío de la factura. Por favor, realice tres intentos más, pulsando nuevamente el botón <b>Validar DIAN</b> cada 20 segundos, de no existir respuesta por parte de la DIAN el sistema entrará en contigencia tipo 4.
                     </div>
                     <div class="alert alert-danger" role="alert" style="margin-top:10px;" 
                         attrs="{'invisible' : [('in_contingency_4', '=', False)]}"> 
@@ -127,9 +127,9 @@
             <xpath expr="//group[1]" position="before"> 
                 <separator/>
                 <group>
-                    <filter string="Contigencia 4 sin notificar al Cliente" name="contigency4_Cliente" domain="[('contingency_4','=',True),('state_contingency', '=', 'por_notificar'),('type', '=', 'out_invoice'),('is_debit_note', '=', False)]"/>
-                    <filter string="Contigencia 4 sin notificar a la DIAN" name="contigency4_DIAN" domain="[('contingency_4','=',True),('state_dian_document', '=', 'por_notificar'),('type', '=', 'out_invoice'),('is_debit_note', '=', False)]"/>
-                    <filter string="Contigencia 3 sin notificar a la DIAN" name="contigency3_DIAN" domain="[('contingency_3','=',True),('state', '=', 'por_notificar'),('type', '=', 'out_invoice'),('is_debit_note', '=', False)]"/>
+                    <filter string="Contingencia 4 sin notificar al Cliente" name="contigency4_Cliente" domain="[('contingency_4','=',True),('state_contingency', '=', 'por_notificar'),('type', '=', 'out_invoice'),('is_debit_note', '=', False)]"/>
+                    <filter string="Contingencia 4 sin notificar a la DIAN" name="contigency4_DIAN" domain="[('contingency_4','=',True),('state_dian_document', '=', 'por_notificar'),('type', '=', 'out_invoice'),('is_debit_note', '=', False)]"/>
+                    <filter string="Contingencia 3 sin notificar a la DIAN" name="contigency3_DIAN" domain="[('contingency_3','=',True),('state_dian_document', '=', 'por_notificar'),('type', '=', 'out_invoice'),('is_debit_note', '=', False)]"/>
 <!--                     <filter string="Contigencia 3 sin notificación normal a la DIAN" name="contigency3_DIAN_Noraml" domain="[('contingency_3','=',True),('state_dian_document', '=', 'por_notificar'),('type', '=', 'out_invoice'),('is_debit_note', '=', False)]"/> -->
                 </group>                
             </xpath>
