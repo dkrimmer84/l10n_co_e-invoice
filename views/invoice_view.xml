@@ -70,7 +70,7 @@
                     <attribute name="required">True</attribute>
                 </xpath>
                 <xpath expr="//field[@name='date_due']" position="attributes">
-                    <attribute name="required">True</attribute>
+                    <attribute name="required">False</attribute>
                 </xpath>
 
 <!--                 <xpath expr="//button[5]" position="attributes">
@@ -107,7 +107,7 @@
                 </xpath>
 
                 <xpath expr="//field[@name='date_due']" position="attributes">
-                    <attribute name="required">True</attribute>
+                    <attribute name="required">False</attribute>
                 </xpath>
 
                 <xpath expr="//field[@name='date_due']" position="after">
