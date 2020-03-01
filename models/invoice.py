@@ -301,6 +301,9 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def valitade_dian(self):
+        document_dian = self.env['dian.document'].search([('document_id', '=', self.id)])
+
+        #if document_dian.exist_dian(document_dian.id) == False:
         if self.in_contingency_4:
             # Documento de ND
             if self.type == 'out_invoice' and self.is_debit_note == True:
@@ -311,13 +314,6 @@ class AccountInvoice(models.Model):
             if self.state_contingency == 'exitosa':
                 raise ValidationError("Factura de contingencia tipo 4 ya fue enviada al cliente. Una vez se restablezca el servicio, debe pulsar este bóton para enviar la contingencia tipo 4 bota la DIAN")
 
-        document_dian = self.env['dian.document'].search([('document_id', '=', self.id)])
-        if document_dian.state == ('por_notificar'):
-            if self.in_contingency_4 == True and self.contingency_3 == False:
-                document_type = document_dian.document_type
-            else:
-                document_type = document_dian.document_type if self.contingency_3 == False else 'contingency'
-            document_dian.send_pending_dian(document_dian.id, document_type)
         if document_dian.state == 'rechazado':
             document_dian.response_message_dian = ' '
             document_dian.xml_response_dian = ' '
@@ -329,6 +325,13 @@ class AccountInvoice(models.Model):
             document_dian.cufe = ' '
             document_dian.date_document_dian = ' '
             document_dian.write({'state' : 'por_notificar', 'resend' : False})
+            if self.in_contingency_4 == True and self.contingency_3 == False:
+                document_type = document_dian.document_type
+            else:
+                document_type = document_dian.document_type if self.contingency_3 == False else 'contingency'
+            document_dian.send_pending_dian(document_dian.id, document_type)
+
+        if document_dian.state == ('por_notificar'):
             if self.in_contingency_4 == True and self.contingency_3 == False:
                 document_type = document_dian.document_type
             else:

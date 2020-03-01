@@ -85,21 +85,21 @@ try:
 except ImportError:
     _logger.warning('Cannot import re library')
          
-
 server_url = {
     'HABILITACION':'https://facturaelectronica.dian.gov.co/habilitacion/B2BIntegrationEngine/FacturaElectronica/facturaElectronica.wsdl',
     'PRODUCCION':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/facturaElectronica.wsdl',
     'HABILITACION_CONSULTA':'https://facturaelectronica.dian.gov.co/habilitacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl',
     'PRODUCCION_CONSULTA':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl',
-    'PRODUCCION_VP':'https://vpfe.dian.gov.co/WcfDianCustomerServices.svc?wsdl',                      
+    'PRODUCCION_VP':'https://vpfe.dian.gov.co/WcfDianCustomerServices.svc?wsdl',
+    #'PRODUCCION_VP':'https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc?wsdl',                      
     'HABILITACION_VP':'https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc?wsdl'
 }
 
-#'PRODUCCION_VP':'https://colombia-dian-webservices-input-sbx.azurewebsites.net/WcfDianCustomerServices.svc?wsdl',
-
 tipo_ambiente = {
     'PRODUCCION':'1',
-    'PRUEBA':'2'
+    #'PRODUCCION':'2',
+    'PRUEBA':'2',
+    #'PRUEBA':'1'
 }
 
 tributes = {
@@ -280,10 +280,6 @@ class DianDocument(models.Model):
             if dian_document.contingency_4 == False:
                 if self.enviar_email(dian_document.xml_document, dian_document.document_id.id, dian_document.xml_file_name):
                     dian_document.date_email_send = fields.Datetime.now()
-            # plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-            # if plantilla_correo:
-            #     plantilla_correo.send_mail(dian_document.document_id.id, force_send = True)
-            #     dian_document.date_email_send = fields.Datetime.now()
         else:
             data_header_doc.write({'diancode_id' : dian_document.id})
             if response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode'] == '90':
@@ -301,377 +297,445 @@ class DianDocument(models.Model):
 
 
     @api.model
-    def send_pending_dian(self, document_id, document_type):
-        resultado = self._get_datetime()
+    def exist_dian(self, document_id):
+        result_verify_status = False
         user = self.env['res.users'].search([('id', '=', self.env.uid)])
         company = self.env['res.company'].search([('id', '=', user.company_id.id)])
-        data_lines_xml = ''
-        data_credit_lines_xml = ''
-        data_xml_signature = ''
+    
+        dian_document = self.env['dian.document'].search([('id', '=', document_id)])
+        data_header_doc = self.env['account.invoice'].search([('id', '=', dian_document.document_id.id)])
+        dian_constants = self._get_dian_constants(data_header_doc)
+        trackId = dian_document.ZipKey
+        identifier = uuid.uuid4()
+        identifierTo = uuid.uuid4()
+        identifierSecurityToken = uuid.uuid4()
+        timestamp = self._generate_datetime_timestamp()
+        Created = timestamp['Created']
+        Expires = timestamp['Expires']
+
+        if company.production:  
+            template_GetStatus_xml = self._template_GetStatusExist_xml()
+        else:
+            template_GetStatus_xml = self._template_GetStatusExistTest_xml()
+
+        data_xml_send = self._generate_GetStatus_send_xml(template_GetStatus_xml, identifier, Created, Expires, 
+            dian_constants['Certificate'], identifierSecurityToken, identifierTo, trackId)
+        
         parser = etree.XMLParser(remove_blank_text=True)
-        template_basic_data_fe_xml = self._template_basic_data_fe_xml()
-        template_basic_data_nc_xml = self._template_basic_data_nc_xml()
-        template_basic_data_nd_xml = self._template_basic_data_nd_xml()
-        template_basic_data_contingencia_xml = self._template_basic_data_contingencia_xml()
-        template_tax_data_xml = self._template_tax_data_xml()
-        template_line_data_xml = self._template_line_data_xml()
-        template_credit_line_data_xml = self._template_credit_line_data_xml()
-        template_debit_line_data_xml = self._template_debit_line_data_xml()
-        template_signature_data_xml = self._template_signature_data_xml()
-        template_send_data_xml = self._template_send_data_xml()
-        # Se obtienen los documento a enviar
-        if document_type == 'f':
-            by_validate_invoices = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=', document_type)])
-            if by_validate_invoices:
-                docs_send_dian = by_validate_invoices
+        data_xml_send = etree.tostring(etree.XML(data_xml_send, parser=parser))
+        data_xml_send = data_xml_send.decode()
+        #   Generar DigestValue Elemento to y lo reemplaza en el xml
+        ElementTO = etree.fromstring(data_xml_send)
+        ElementTO = etree.tostring(ElementTO[0])
+        ElementTO = etree.fromstring(ElementTO)
+        ElementTO = etree.tostring(ElementTO[2])
+        DigestValueTO = self._generate_digestvalue_to(ElementTO)
+        data_xml_send = data_xml_send.replace('<ds:DigestValue/>','<ds:DigestValue>%s</ds:DigestValue>' % DigestValueTO)
+        #   Generar firma para el header de envío con el Signedinfo
+        Signedinfo = etree.fromstring(data_xml_send)
+        Signedinfo = etree.tostring(Signedinfo[0])
+        Signedinfo = etree.fromstring(Signedinfo)
+        Signedinfo = etree.tostring(Signedinfo[0])
+        Signedinfo = etree.fromstring(Signedinfo)
+        Signedinfo = etree.tostring(Signedinfo[2])
+        Signedinfo = etree.fromstring(Signedinfo)
+        Signedinfo = etree.tostring(Signedinfo[0])
+        Signedinfo = Signedinfo.decode()
+        Signedinfo = Signedinfo.replace('<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia">',
+                                        '<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia" xmlns:wsa="http://www.w3.org/2005/08/addressing">')
+        SignatureValue = self._generate_SignatureValue_GetStatus(dian_constants['document_repository'], dian_constants['CertificateKey'], Signedinfo, dian_constants['archivo_pem'], dian_constants['archivo_certificado'])
+        data_xml_send = data_xml_send.replace('<ds:SignatureValue/>','<ds:SignatureValue>%s</ds:SignatureValue>' % SignatureValue)
+        #   Contruye XML de envío de petición
+        headers = {'content-type': 'application/soap+xml'}
+        try:
+             response = requests.post(server_url['HABILITACION_VP'],data=data_xml_send,headers=headers)
+        except:
+             raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+        #   Respuesta de petición
+        if response.status_code != 200: # Respuesta de envío no exitosa
+            if response.status_code == 500:
+                raise ValidationError('Error 500 = Error de servidor interno.')
+            elif response.status_code == 503:
+                raise ValidationError('Error 503 = Servicio no disponible.')
+            elif response.status_code == 507:
+                raise ValidationError('Error 507 = Espacio insuficiente.')
+            elif response.status_code == 508:
+                raise ValidationError('Error 508 = Ciclo detectado.')
             else:
-                raise ValidationError('La factura no está en proceso de envío a la DIAN. Contacte al administrador del sistema')
-        if document_type == 'c':
-            by_validate_credit_notes = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=', document_type)])
-            cn_with_validated_invoices_ids = []
-            for by_validate_cn in by_validate_credit_notes:
-                invoice_validated = self.env['account.invoice'].search([('move_name', '=', by_validate_cn.document_id.origin),('type', '=', 'out_invoice'),('state_dian_document', '=', 'exitoso')])
-                if invoice_validated:
-                    cn_with_validated_invoices_ids.append(by_validate_cn.id)
-                else:
-                    raise ValidationError('La factura a la que se le va a aplicar la nota de crédito, no ha sido enviada o aceptada por la DIAN')
-            by_validate_credit_notes_autorized = self.env['dian.document'].browse(cn_with_validated_invoices_ids)
-            docs_send_dian = by_validate_credit_notes_autorized
-        if document_type == 'd':
-            by_validate_debit_notes = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=', document_type)])
-            cn_with_validated_invoices_ids = []
-            for by_validate_cn in by_validate_debit_notes:
-                invoice_validated = self.env['account.invoice'].search([('move_name', '=', by_validate_cn.document_id.origin),('type', '=', 'out_invoice'),('state_dian_document', '=', 'exitoso')])
-                if invoice_validated:
-                    cn_with_validated_invoices_ids.append(by_validate_cn.id)
-                else:
-                    raise ValidationError('La factura a la que se le va a aplicar la nota de débito, no ha sido enviada o aceptada por la DIAN')
-            by_validate_debit_notes_autorized = self.env['dian.document'].browse(cn_with_validated_invoices_ids)
-            docs_send_dian = by_validate_debit_notes_autorized
-
-        if document_type == 'contingency' and self.contingency_3:
-            by_validate_invoices = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=',  'f')])
-            if by_validate_invoices:
-                docs_send_dian = by_validate_invoices
-            else:
-                raise ValidationError('La factura no está en proceso de envío a la DIAN. Contacte al administrador del sistema')
-        for doc_send_dian in docs_send_dian:
-            data_header_doc = self.env['account.invoice'].search([('id', '=', doc_send_dian.document_id.id)])
-            dian_constants = self._get_dian_constants(data_header_doc)
-            # Se obtienen constantes del documento
-            data_constants_document = self._generate_data_constants_document(data_header_doc, dian_constants, document_type, company.in_contingency_4)            
-            # Construye el documento XML para la factura sin firma
-            if data_constants_document['InvoiceTypeCode'] in ('01','04'):
-                # Genera líneas de detalle de los impuestos
-                data_taxs = self._get_taxs_data(data_header_doc.id)
-                data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
-                # Genera líneas de detalle de las factura
-                data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id)
-                # Generar CUFE
-                ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
-                CUFE = self._generate_cufe(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
-                                        data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
-                                        dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
-                                        data_constants_document['CustomerID'], data_constants_document['TechnicalKey'], data_constants_document['PayableAmount'], 
-                                        data_taxs, ambiente)
-                doc_send_dian.cufe = CUFE
-                # Genera documento xml de la factura
-                template_basic_data_fe_xml = '<?xml version="1.0"?>' + template_basic_data_fe_xml
-                template_basic_data_fe_xml = etree.tostring(etree.XML(template_basic_data_fe_xml, parser=parser))
-                template_basic_data_fe_xml = template_basic_data_fe_xml.decode()
-                data_xml_document = self._generate_data_fe_document_xml(template_basic_data_fe_xml, dian_constants, data_constants_document, data_taxs_xml, data_lines_xml, CUFE, data_xml_signature)
-                # Elimina espacios del documento xml la factura
-                data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
-                data_xml_document = data_xml_document.decode()
-            # Construye el documento XML para la nota de crédito sin firma
-            if data_constants_document['InvoiceTypeCode'] == '91':
-                data_taxs = self._get_taxs_data(data_header_doc.id)
-                data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
-                # Detalle líneas de nota de crédito                
-                data_credit_lines_xml = self._generate_credit_lines_data_xml(template_credit_line_data_xml, data_header_doc.id, data_constants_document)
-                # Generar CUDE
-                ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
-                CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
-                        data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
-                        dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
-                        data_constants_document['CustomerID'], dian_constants['PINSoftware'], data_constants_document['PayableAmount'], 
-                        data_taxs, ambiente)
-                doc_send_dian.cufe = CUFE
-                # Genera documento xml de la nota de crédito
-                template_basic_data_nc_xml = '<?xml version="1.0"?>' + template_basic_data_nc_xml
-                template_basic_data_nc_xml = etree.tostring(etree.XML(template_basic_data_nc_xml, parser=parser))
-                template_basic_data_nc_xml = template_basic_data_nc_xml.decode()
-                data_xml_document = self._generate_data_nc_document_xml(template_basic_data_nc_xml, dian_constants, data_constants_document, data_credit_lines_xml, CUFE, data_taxs_xml)
-                # Elimina espacios del documento xml
-                data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
-                data_xml_document = data_xml_document.decode()
-            # Construye el documento XML para la nota de dédito sin firma
-            if data_constants_document['InvoiceTypeCode'] == '92':
-                data_taxs = self._get_taxs_data(data_header_doc.id)
-                data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
-                # Detalle líneas de nota de crédito                
-                data_debit_lines_xml = self._generate_debit_lines_data_xml(template_debit_line_data_xml, data_header_doc.id, data_constants_document)
-                # Generar CUFE
-                ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
-                CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
-                        data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
-                        dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
-                        data_constants_document['CustomerID'], dian_constants['PINSoftware'], data_constants_document['PayableAmount'], 
-                        data_taxs, ambiente)
-                doc_send_dian.cufe = CUFE
-                # Genera documento xml de la nota de débiito
-                template_basic_data_nd_xml = '<?xml version="1.0"?>' + template_basic_data_nd_xml
-                template_basic_data_nd_xml = etree.tostring(etree.XML(template_basic_data_nd_xml, parser=parser))
-                template_basic_data_nd_xml = template_basic_data_nd_xml.decode()
-                data_xml_document = self._generate_data_nd_document_xml(template_basic_data_nd_xml, dian_constants, data_constants_document, data_debit_lines_xml, CUFE, data_taxs_xml)
-                # Elimina espacios del documento xml                
-                data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
-                data_xml_document = data_xml_document.decode()
-            # Construye el documento XML para la factura de contingencia sin firma
-            if data_constants_document['InvoiceTypeCode'] == '03':
-                data_taxs = self._get_taxs_data(data_header_doc.id)
-                data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
-                # Genera líneas de detalle de las factura
-                data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id)
-                # Generar CUDE
-                ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
-                CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
-                        data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
-                        dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
-                        data_constants_document['CustomerID'], dian_constants['PINSoftware'], data_constants_document['PayableAmount'], 
-                        data_taxs, ambiente)
-                doc_send_dian.cufe = CUFE
-                # Genera documento xml de la factura
-                template_basic_data_contingencia_xml = '<?xml version="1.0"?>' + template_basic_data_contingencia_xml
-                template_basic_data_contingencia_xml = etree.tostring(etree.XML(template_basic_data_contingencia_xml, parser=parser))
-                template_basic_data_contingencia_xml = template_basic_data_contingencia_xml.decode()
-                data_xml_document = self._generate_data_contingencia_document_xml(template_basic_data_contingencia_xml, dian_constants, data_constants_document, data_taxs_xml, data_lines_xml, CUFE, data_xml_signature)
-                # Elimina espacios del documento xml la factura
-                data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
-                data_xml_document = data_xml_document.decode()
-            # Genera la firma en el documento xml
-            data_xml_document = data_xml_document.replace("<ext:ExtensionContent/>","<ext:ExtensionContent></ext:ExtensionContent>")
-            data_xml_signature = self._generate_signature(data_xml_document, template_signature_data_xml, dian_constants, data_constants_document)
-            data_xml_signature = etree.tostring(etree.XML(data_xml_signature, parser=parser))
-            data_xml_signature = data_xml_signature.decode()
-            # Construye el documento XML con firma
-            data_xml_document = data_xml_document.replace("<ext:ExtensionContent></ext:ExtensionContent>","<ext:ExtensionContent>%s</ext:ExtensionContent>" % data_xml_signature)
-            data_xml_document = '<?xml version="1.0" encoding="UTF-8"?>' + data_xml_document
-            # Generar codigo DIAN       
-            doc_send_dian.dian_code = data_constants_document['InvoiceID']
-            # Generar nombre del archvio xml
-            doc_send_dian.xml_file_name = data_constants_document['FileNameXML']
-            # Almacenar archivo xml
-            doc_send_dian.xml_document = data_xml_document
-            # Generar nombre archvio ZIP
-            doc_send_dian.zip_file_name = data_constants_document['FileNameZIP']
-            # Comprimir documento electrónico         
-            Document = self._generate_zip_content(data_constants_document['FileNameXML'], data_constants_document['FileNameZIP'], data_xml_document, dian_constants['document_repository'])
-            fileName = data_constants_document['FileNameZIP'][:-4]
-            # Fecha y hora de la petición y expiración del envío del documento
-            timestamp = self._generate_datetime_timestamp()
-            Created = timestamp['Created']
-            Expires = timestamp['Expires']
-            doc_send_dian.date_document_dian = data_constants_document['IssueDateSend']
-            # Id de pruebas
-            testSetId = company.identificador_set_pruebas
-            identifierSecurityToken = uuid.uuid4()
-            identifierTo = uuid.uuid4()            
-            # Preparación del envío de la factura 
-            if company.production:
-                template_SendBillSyncsend_xml = self._template_SendBillSyncsend_xml()
-                data_xml_send = self._generate_SendBillSync_send_xml(template_SendBillSyncsend_xml, fileName, 
-                                Document, Created, testSetId, data_constants_document['identifier'], Expires, 
-                                dian_constants['Certificate'], identifierSecurityToken, identifierTo)
-                # Por lotes
-                # template_SendBillAsyncsend_xml = self._template_SendBillAsyncsend_xml()
-                # data_xml_send = self._generate_SendBillAsync_send_xml(template_SendBillAsyncsend_xml, fileName, 
-                #                 Document, Created, testSetId, data_constants_document['identifier'], Expires, 
-                #                 dian_constants['Certificate'], identifierSecurityToken, identifierTo)
-            else:
-                template_SendTestSetAsyncsend_xml = self._template_SendBillSyncTestsend_xml()
-                data_xml_send = self._generate_SendTestSetAsync_send_xml(template_SendTestSetAsyncsend_xml, fileName, 
-                                Document, Created, testSetId, data_constants_document['identifier'], Expires, 
-                                dian_constants['Certificate'], identifierSecurityToken, identifierTo)
+                raise ValidationError('Se ha producido un error de comunicación con la DIAN.')
+        response_dict = xmltodict.parse(response.content)
+        if response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusCode'] == '00':
+            result_verify_status = True
+        else:
+            result_verify_status = False
+        return result_verify_status 
 
 
-                # Por lotes
-                # template_SendTestSetAsyncsend_xml = self._template_SendTestSetAsyncsend_xml()
-                # data_xml_send = self._generate_SendTestSetAsync_send_xml(template_SendTestSetAsyncsend_xml, fileName, 
-                #                 Document, Created, testSetId, data_constants_document['identifier'], Expires, 
-                #                 dian_constants['Certificate'], identifierSecurityToken, identifierTo)
-
+    @api.model
+    def send_pending_dian(self, document_id, document_type):
+        if self.exist_dian(self.id) == False:
+            resultado = self._get_datetime()
+            user = self.env['res.users'].search([('id', '=', self.env.uid)])
+            company = self.env['res.company'].search([('id', '=', user.company_id.id)])
+            data_lines_xml = ''
+            data_credit_lines_xml = ''
+            data_xml_signature = ''
             parser = etree.XMLParser(remove_blank_text=True)
-            data_xml_send = etree.tostring(etree.XML(data_xml_send, parser=parser))
-            data_xml_send = data_xml_send.decode()
-            #   Generar DigestValue Elemento to y lo reemplaza en el xml
-            ElementTO = etree.fromstring(data_xml_send)
-            ElementTO = etree.tostring(ElementTO[0])
-            ElementTO = etree.fromstring(ElementTO)
-            ElementTO = etree.tostring(ElementTO[2])
-            DigestValueTO = self._generate_digestvalue_to(ElementTO)
-            data_xml_send = data_xml_send.replace('<ds:DigestValue/>','<ds:DigestValue>%s</ds:DigestValue>' % DigestValueTO)
-            #   Generar firma para el header de envío con el Signedinfo
-            Signedinfo = etree.fromstring(data_xml_send)
-            Signedinfo = etree.tostring(Signedinfo[0])
-            Signedinfo = etree.fromstring(Signedinfo)
-            Signedinfo = etree.tostring(Signedinfo[0])
-            Signedinfo = etree.fromstring(Signedinfo)
-            Signedinfo = etree.tostring(Signedinfo[2])
-            Signedinfo = etree.fromstring(Signedinfo)
-            Signedinfo = etree.tostring(Signedinfo[0])
-            Signedinfo = Signedinfo.decode()
-            Signedinfo = Signedinfo.replace('<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia">',
-                                            '<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia" xmlns:wsa="http://www.w3.org/2005/08/addressing">')
-            SignatureValue = self._generate_SignatureValue_GetStatus(dian_constants['document_repository'], dian_constants['CertificateKey'], Signedinfo, dian_constants['archivo_pem'], dian_constants['archivo_certificado'])
-            data_xml_send = data_xml_send.replace('<ds:SignatureValue/>','<ds:SignatureValue>%s</ds:SignatureValue>' % SignatureValue)
-            
-            #   Contruye XML de envío de petición
-            headers = {'content-type': 'application/soap+xml'}
-            URL_WEBService_DIAN = server_url['PRODUCCION_VP'] if company.production else server_url['HABILITACION_VP']
-            
-            if company.in_contingency_4 == False: # Diferente a contingencia tipo 4 (Problemas tecnológicos en la DIAN)
-                
-                try:
-                    response = requests.post(URL_WEBService_DIAN,data=data_xml_send,headers=headers)
-                except:
-                    raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas. Por favor, revise su red o el acceso a internet.')
-                
-                # code = 500
-                # if code != 200:
-
-                if response.status_code != 200: # Respuesta de envío no exitosa
-
-                    # if code in (500,503,507,508):
-                    #     message_error_DIAN = str(code) + ' ' + 'Prueba'
-
-                    message_error_DIAN = str(response.status_code) + ' ' + response.content.decode()
-                    if response.status_code in (500,503,507,508):
-                        data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                        if doc_send_dian.count_error_DIAN == 0:
-                            doc_send_dian.date_error_DIAN_1 = self._get_datetime()
-                            doc_send_dian.message_error_DIAN_1 = message_error_DIAN
-                            doc_send_dian.count_error_DIAN = 1
-                        elif doc_send_dian.count_error_DIAN == 1:
-                            doc_send_dian.date_error_DIAN_2 = self._get_datetime()
-                            doc_send_dian.message_error_DIAN_2 = message_error_DIAN
-                            doc_send_dian.count_error_DIAN = 2
-                        elif doc_send_dian.count_error_DIAN == 2:
-                            doc_send_dian.date_error_DIAN_3 = self._get_datetime()
-                            doc_send_dian.message_error_DIAN_3 = message_error_DIAN
-                            doc_send_dian.count_error_DIAN = 3
-                        elif doc_send_dian.count_error_DIAN == 3:
-                            company.in_contingency_4 = True
-                            company.date_init_contingency_4 = self._get_datetime()
-                            doc_send_dian.count_error_DIAN = 0
-                            if company.in_contingency_4 == True and self.contingency_3 == False:
-                                document_type = self.document_type
-                            else:
-                                document_type = self.document_type if self.contingency_3 == False else 'contingency'
-                            #document_type = self.document_type if self.contingency_3 == False and  self.contingency_4 == False else 'contingency'
-                            self.send_pending_dian(self.id, document_type)
+            template_basic_data_fe_xml = self._template_basic_data_fe_xml()
+            template_basic_data_nc_xml = self._template_basic_data_nc_xml()
+            template_basic_data_nd_xml = self._template_basic_data_nd_xml()
+            template_basic_data_contingencia_xml = self._template_basic_data_contingencia_xml()
+            template_tax_data_xml = self._template_tax_data_xml()
+            template_line_data_xml = self._template_line_data_xml()
+            template_credit_line_data_xml = self._template_credit_line_data_xml()
+            template_debit_line_data_xml = self._template_debit_line_data_xml()
+            template_signature_data_xml = self._template_signature_data_xml()
+            template_send_data_xml = self._template_send_data_xml()
+            # Se obtienen los documento a enviar
+            if document_type == 'f':
+                by_validate_invoices = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=', document_type)])
+                if by_validate_invoices:
+                    docs_send_dian = by_validate_invoices
+                else:
+                    raise ValidationError('La factura no está en proceso de envío a la DIAN. Contacte al administrador del sistema')
+            if document_type == 'c':
+                by_validate_credit_notes = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=', document_type)])
+                cn_with_validated_invoices_ids = []
+                for by_validate_cn in by_validate_credit_notes:
+                    invoice_validated = self.env['account.invoice'].search([('move_name', '=', by_validate_cn.document_id.origin),('type', '=', 'out_invoice'),('state_dian_document', '=', 'exitoso')])
+                    if invoice_validated:
+                        cn_with_validated_invoices_ids.append(by_validate_cn.id)
                     else:
-                        raise ValidationError(message_error_DIAN)
+                        raise ValidationError('La factura a la que se le va a aplicar la nota de crédito, no ha sido enviada o aceptada por la DIAN')
+                by_validate_credit_notes_autorized = self.env['dian.document'].browse(cn_with_validated_invoices_ids)
+                docs_send_dian = by_validate_credit_notes_autorized
+            if document_type == 'd':
+                by_validate_debit_notes = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=', document_type)])
+                cn_with_validated_invoices_ids = []
+                for by_validate_cn in by_validate_debit_notes:
+                    invoice_validated = self.env['account.invoice'].search([('move_name', '=', by_validate_cn.document_id.origin),('type', '=', 'out_invoice'),('state_dian_document', '=', 'exitoso')])
+                    if invoice_validated:
+                        cn_with_validated_invoices_ids.append(by_validate_cn.id)
+                    else:
+                        raise ValidationError('La factura a la que se le va a aplicar la nota de débito, no ha sido enviada o aceptada por la DIAN')
+                by_validate_debit_notes_autorized = self.env['dian.document'].browse(cn_with_validated_invoices_ids)
+                docs_send_dian = by_validate_debit_notes_autorized
 
-                    # if response.status_code == 500:
-                    #     raise ValidationError('Error 500 = Error de servidor interno. Por favor, intente nuevamente en 20 segundos')
-                    # if response.status_code == 503:
-                    #     raise ValidationError('Error 503 = Servicio no disponible. Por favor, intente nuevamente en 20 segundos')
-                    # if response.status_code == 507:
-                    #     raise ValidationError('Error 507 = Espacio insuficiente. Por favor, intente nuevamente en 20 segundos')
-                    # if response.status_code == 508:
-                    #     raise ValidationError('Error 508 = Ciclo detectado. Por favor, intente nuevamente en 20 segundos')
-
+            if document_type == 'contingency' and self.contingency_3:
+                by_validate_invoices = self.env['dian.document'].search([('id', '=', document_id),('document_type', '=',  'f')])
+                if by_validate_invoices:
+                    docs_send_dian = by_validate_invoices
                 else:
-                    # Procesa respuesta DIAN 
-                    response_dict = xmltodict.parse(response.content)
-                    dict_mensaje = {}
-                    if company.production:
-                        dict_mensaje = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid']
-                        doc_send_dian.response_message_dian = ' '
-                        if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid'] == 'true':
-                            doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
-                            doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
-                            doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
-                            doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
-                            doc_send_dian.xml_response_dian = response.content
-                            doc_send_dian.xml_send_query_dian = data_xml_send
-                            doc_send_dian.write({'state' : 'exitoso', 'resend' : False})
-                            if doc_send_dian.contingency_3:
-                                doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
-                            data_header_doc.write({'diancode_id' : doc_send_dian.id})                        
-                            # Generar código QR
-                            doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
-                            # Envío de correo
-                            if doc_send_dian.contingency_4 == False:
-                                if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
-                                    doc_send_dian.date_email_send = fields.Datetime.now()
-                        else:
-                            doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
-                            doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
-                            doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
-                            doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
-                            doc_send_dian.write({'state' : 'rechazado', 'resend' : True})
-                            if doc_send_dian.contingency_3:
-                                doc_send_dian.write({'state_contingency' : 'rechazada', 'resend' : True})
-                            data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                            doc_send_dian.xml_response_dian = response.content
-                            doc_send_dian.xml_send_query_dian = data_xml_send
-                            # Generar código QR
-                            doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
-                    else: # Ambiente de pruebas
-                        dict_mensaje = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']
-                        if '@i:nil' in dict_mensaje:
-                            if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['@i:nil'] == 'true':
-                                doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
-                                doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
-                                doc_send_dian.state = 'por_validar'
-                            else:
-                                doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
-                                doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
-                                doc_send_dian.state = 'por_notificar'
-                        elif 'i:nil' in dict_mensaje:
-                            if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['i:nil'] == 'true':
-                                doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
-                                doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
-                                doc_send_dian.state = 'por_validar'
-                            else:
-                                doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
-                                doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
-                                doc_send_dian.state = 'por_notificar'
-                        else:
-                            raise ValidationError('Mensaje de respuesta cambió en su estructura xml')
-                        # Generar código QR
-                        doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                    raise ValidationError('La factura no está en proceso de envío a la DIAN. Contacte al administrador del sistema')
+            for doc_send_dian in docs_send_dian:
+                data_header_doc = self.env['account.invoice'].search([('id', '=', doc_send_dian.document_id.id)])
+                dian_constants = self._get_dian_constants(data_header_doc)
+                # Se obtienen constantes del documento
+                data_constants_document = self._generate_data_constants_document(data_header_doc, dian_constants, document_type, company.in_contingency_4)            
+                # Construye el documento XML para la factura sin firma
+                if data_constants_document['InvoiceTypeCode'] in ('01','04'):
+                    # Genera líneas de detalle de los impuestos
+                    data_taxs = self._get_taxs_data(data_header_doc.id)
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
+                    # Genera líneas de detalle de las factura
+                    data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id)
+                    # Generar CUFE
+                    ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
+                    CUFE = self._generate_cufe(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
+                                            data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
+                                            dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
+                                            data_constants_document['CustomerID'], data_constants_document['TechnicalKey'], data_constants_document['PayableAmount'], 
+                                            data_taxs, ambiente)
+                    doc_send_dian.cufe = CUFE
+                    # Genera documento xml de la factura
+                    template_basic_data_fe_xml = '<?xml version="1.0"?>' + template_basic_data_fe_xml
+                    template_basic_data_fe_xml = etree.tostring(etree.XML(template_basic_data_fe_xml, parser=parser))
+                    template_basic_data_fe_xml = template_basic_data_fe_xml.decode()
+                    data_xml_document = self._generate_data_fe_document_xml(template_basic_data_fe_xml, dian_constants, data_constants_document, data_taxs_xml, data_lines_xml, CUFE, data_xml_signature)
+                    # Elimina espacios del documento xml la factura
+                    data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
+                    data_xml_document = data_xml_document.decode()
+                # Construye el documento XML para la nota de crédito sin firma
+                if data_constants_document['InvoiceTypeCode'] == '91':
+                    data_taxs = self._get_taxs_data(data_header_doc.id)
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
+                    # Detalle líneas de nota de crédito                
+                    data_credit_lines_xml = self._generate_credit_lines_data_xml(template_credit_line_data_xml, data_header_doc.id, data_constants_document)
+                    # Generar CUDE
+                    ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
+                    CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
+                            data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
+                            dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
+                            data_constants_document['CustomerID'], dian_constants['PINSoftware'], data_constants_document['PayableAmount'], 
+                            data_taxs, ambiente)
+                    doc_send_dian.cufe = CUFE
+                    # Genera documento xml de la nota de crédito
+                    template_basic_data_nc_xml = '<?xml version="1.0"?>' + template_basic_data_nc_xml
+                    template_basic_data_nc_xml = etree.tostring(etree.XML(template_basic_data_nc_xml, parser=parser))
+                    template_basic_data_nc_xml = template_basic_data_nc_xml.decode()
+                    data_xml_document = self._generate_data_nc_document_xml(template_basic_data_nc_xml, dian_constants, data_constants_document, data_credit_lines_xml, CUFE, data_taxs_xml)
+                    # Elimina espacios del documento xml
+                    data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
+                    data_xml_document = data_xml_document.decode()
+                # Construye el documento XML para la nota de dédito sin firma
+                if data_constants_document['InvoiceTypeCode'] == '92':
+                    data_taxs = self._get_taxs_data(data_header_doc.id)
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
+                    # Detalle líneas de nota de crédito                
+                    data_debit_lines_xml = self._generate_debit_lines_data_xml(template_debit_line_data_xml, data_header_doc.id, data_constants_document)
+                    # Generar CUFE
+                    ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
+                    CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
+                            data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
+                            dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
+                            data_constants_document['CustomerID'], dian_constants['PINSoftware'], data_constants_document['PayableAmount'], 
+                            data_taxs, ambiente)
+                    doc_send_dian.cufe = CUFE
+                    # Genera documento xml de la nota de débiito
+                    template_basic_data_nd_xml = '<?xml version="1.0"?>' + template_basic_data_nd_xml
+                    template_basic_data_nd_xml = etree.tostring(etree.XML(template_basic_data_nd_xml, parser=parser))
+                    template_basic_data_nd_xml = template_basic_data_nd_xml.decode()
+                    data_xml_document = self._generate_data_nd_document_xml(template_basic_data_nd_xml, dian_constants, data_constants_document, data_debit_lines_xml, CUFE, data_taxs_xml)
+                    # Elimina espacios del documento xml                
+                    data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
+                    data_xml_document = data_xml_document.decode()
+                # Construye el documento XML para la factura de contingencia sin firma
+                if data_constants_document['InvoiceTypeCode'] == '03':
+                    data_taxs = self._get_taxs_data(data_header_doc.id)
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
+                    # Genera líneas de detalle de las factura
+                    data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id)
+                    # Generar CUDE
+                    ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
+                    CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
+                            data_constants_document['IssueTime'], data_constants_document['LineExtensionAmount'],
+                            dian_constants['SupplierID'], data_constants_document['CustomerSchemeID'],
+                            data_constants_document['CustomerID'], dian_constants['PINSoftware'], data_constants_document['PayableAmount'], 
+                            data_taxs, ambiente)
+                    doc_send_dian.cufe = CUFE
+                    # Genera documento xml de la factura
+                    template_basic_data_contingencia_xml = '<?xml version="1.0"?>' + template_basic_data_contingencia_xml
+                    template_basic_data_contingencia_xml = etree.tostring(etree.XML(template_basic_data_contingencia_xml, parser=parser))
+                    template_basic_data_contingencia_xml = template_basic_data_contingencia_xml.decode()
+                    data_xml_document = self._generate_data_contingencia_document_xml(template_basic_data_contingencia_xml, dian_constants, data_constants_document, data_taxs_xml, data_lines_xml, CUFE, data_xml_signature)
+                    # Elimina espacios del documento xml la factura
+                    data_xml_document = etree.tostring(etree.XML(data_xml_document, parser=parser))
+                    data_xml_document = data_xml_document.decode()
+                # Genera la firma en el documento xml
+                data_xml_document = data_xml_document.replace("<ext:ExtensionContent/>","<ext:ExtensionContent></ext:ExtensionContent>")
+                data_xml_signature = self._generate_signature(data_xml_document, template_signature_data_xml, dian_constants, data_constants_document)
+                data_xml_signature = etree.tostring(etree.XML(data_xml_signature, parser=parser))
+                data_xml_signature = data_xml_signature.decode()
+                # Construye el documento XML con firma
+                data_xml_document = data_xml_document.replace("<ext:ExtensionContent></ext:ExtensionContent>","<ext:ExtensionContent>%s</ext:ExtensionContent>" % data_xml_signature)
+                data_xml_document = '<?xml version="1.0" encoding="UTF-8"?>' + data_xml_document
+                # Generar codigo DIAN       
+                doc_send_dian.dian_code = data_constants_document['InvoiceID']
+                # Generar nombre del archvio xml
+                doc_send_dian.xml_file_name = data_constants_document['FileNameXML']
+                # Almacenar archivo xml
+                doc_send_dian.xml_document = data_xml_document
+                # Generar nombre archvio ZIP
+                doc_send_dian.zip_file_name = data_constants_document['FileNameZIP']
+                # Comprimir documento electrónico         
+                Document = self._generate_zip_content(data_constants_document['FileNameXML'], data_constants_document['FileNameZIP'], data_xml_document, dian_constants['document_repository'])
+                fileName = data_constants_document['FileNameZIP'][:-4]
+                # Fecha y hora de la petición y expiración del envío del documento
+                timestamp = self._generate_datetime_timestamp()
+                Created = timestamp['Created']
+                Expires = timestamp['Expires']
+                doc_send_dian.date_document_dian = data_constants_document['IssueDateSend']
+                # Id de pruebas
+                testSetId = company.identificador_set_pruebas
+                identifierSecurityToken = uuid.uuid4()
+                identifierTo = uuid.uuid4()            
+                # Preparación del envío de la factura 
+                if company.production:                 
+                    #template_SendBillSyncsend_xml = self._template_SendBillSyncsend_xml()
+                    template_SendBillSyncsend_xml = self._template_SendBillSyncsend_xml()
+                    data_xml_send = self._generate_SendBillSync_send_xml(template_SendBillSyncsend_xml, fileName, 
+                                    Document, Created, testSetId, data_constants_document['identifier'], Expires, 
+                                    dian_constants['Certificate'], identifierSecurityToken, identifierTo)
+                    # Por lotes
+                    # template_SendBillAsyncsend_xml = self._template_SendBillAsyncsend_xml()
+                    # data_xml_send = self._generate_SendBillAsync_send_xml(template_SendBillAsyncsend_xml, fileName, 
+                    #                 Document, Created, testSetId, data_constants_document['identifier'], Expires, 
+                    #                 dian_constants['Certificate'], identifierSecurityToken, identifierTo)
+                else:
+                    template_SendTestSetAsyncsend_xml = self._template_SendBillSyncTestsend_xml()
+                    data_xml_send = self._generate_SendTestSetAsync_send_xml(template_SendTestSetAsyncsend_xml, fileName, 
+                                    Document, Created, testSetId, data_constants_document['identifier'], Expires, 
+                                    dian_constants['Certificate'], identifierSecurityToken, identifierTo)
 
-            else: # Contigencia tipo 4
-                data_header_doc.contingency_4 = True                
-                doc_send_dian.xml_document_contingency = data_xml_document
-                doc_send_dian.xml_send_query_dian = data_xml_send
-                # Generar código QR
-                doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+
+                    # Por lotes
+                    # template_SendTestSetAsyncsend_xml = self._template_SendTestSetAsyncsend_xml()
+                    # data_xml_send = self._generate_SendTestSetAsync_send_xml(template_SendTestSetAsyncsend_xml, fileName, 
+                    #                 Document, Created, testSetId, data_constants_document['identifier'], Expires, 
+                    #                 dian_constants['Certificate'], identifierSecurityToken, identifierTo)
+
+                parser = etree.XMLParser(remove_blank_text=True)
+                data_xml_send = etree.tostring(etree.XML(data_xml_send, parser=parser))
+                data_xml_send = data_xml_send.decode()
+                #   Generar DigestValue Elemento to y lo reemplaza en el xml
+                ElementTO = etree.fromstring(data_xml_send)
+                ElementTO = etree.tostring(ElementTO[0])
+                ElementTO = etree.fromstring(ElementTO)
+                ElementTO = etree.tostring(ElementTO[2])
+                DigestValueTO = self._generate_digestvalue_to(ElementTO)
+                data_xml_send = data_xml_send.replace('<ds:DigestValue/>','<ds:DigestValue>%s</ds:DigestValue>' % DigestValueTO)
+                #   Generar firma para el header de envío con el Signedinfo
+                Signedinfo = etree.fromstring(data_xml_send)
+                Signedinfo = etree.tostring(Signedinfo[0])
+                Signedinfo = etree.fromstring(Signedinfo)
+                Signedinfo = etree.tostring(Signedinfo[0])
+                Signedinfo = etree.fromstring(Signedinfo)
+                Signedinfo = etree.tostring(Signedinfo[2])
+                Signedinfo = etree.fromstring(Signedinfo)
+                Signedinfo = etree.tostring(Signedinfo[0])
+                Signedinfo = Signedinfo.decode()
+                Signedinfo = Signedinfo.replace('<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia">',
+                                                '<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia" xmlns:wsa="http://www.w3.org/2005/08/addressing">')
+                SignatureValue = self._generate_SignatureValue_GetStatus(dian_constants['document_repository'], dian_constants['CertificateKey'], Signedinfo, dian_constants['archivo_pem'], dian_constants['archivo_certificado'])
+                data_xml_send = data_xml_send.replace('<ds:SignatureValue/>','<ds:SignatureValue>%s</ds:SignatureValue>' % SignatureValue)
                 
-                # Enviar email
-                data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
-                    doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
-                    doc_send_dian.date_email_send = fields.Datetime.now()
-                    doc_send_dian.xml_response_contingency_dian = 'XML de factura de contigencia enviada al cliente'
-                else:
-                    doc_send_dian.write({'state_contingency' : 'rechazada', 'resend' : True})
-                    doc_send_dian.xml_response_dian = ' '
-                    doc_send_dian.xml_response_contingency_dian = 'XML de factura de contingencia no pudo ser enviada al cliente' 
+                #   Contruye XML de envío de petición
+                headers = {'content-type': 'application/soap+xml'}
+                URL_WEBService_DIAN = server_url['PRODUCCION_VP'] if company.production else server_url['HABILITACION_VP']
 
-                # Verificar si en la DIAN todavía persiste la falla tecnológica
-                date_current = self._get_datetime()    
-                date_current = datetime.strptime(date_current, '%Y-%m-%d %H:%M:%S')
-                time_difference = date_current - company.date_init_contingency_4  
-                if time_difference.days > 0 or (time_difference.seconds / 60) > 30:                          
-                    company.in_contingency_4 = False
-                    company.date_end_contingency_4 = date_current
+                if company.in_contingency_4 == False: # Diferente a contingencia tipo 4 (Problemas tecnológicos en la DIAN)
+                    
+                    try:
+                        response = requests.post(URL_WEBService_DIAN,data=data_xml_send,headers=headers)
+                    except:
+                        raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas. Por favor, revise su red o el acceso a internet.')
+                    
+                    # code = 500
+                    # if code != 200:
+
+                    if response.status_code != 200: # Respuesta de envío no exitosa
+
+                        # if code in (500,503,507,508):
+                        #     message_error_DIAN = str(code) + ' ' + 'Prueba'
+
+                        message_error_DIAN = str(response.status_code) + ' ' + response.content.decode()
+                        if response.status_code in (500,503,507,508):
+                            data_header_doc.write({'diancode_id' : doc_send_dian.id})
+                            if doc_send_dian.count_error_DIAN == 0:
+                                doc_send_dian.date_error_DIAN_1 = self._get_datetime()
+                                doc_send_dian.message_error_DIAN_1 = message_error_DIAN
+                                doc_send_dian.count_error_DIAN = 1
+                            elif doc_send_dian.count_error_DIAN == 1:
+                                doc_send_dian.date_error_DIAN_2 = self._get_datetime()
+                                doc_send_dian.message_error_DIAN_2 = message_error_DIAN
+                                doc_send_dian.count_error_DIAN = 2
+                            elif doc_send_dian.count_error_DIAN == 2:
+                                doc_send_dian.date_error_DIAN_3 = self._get_datetime()
+                                doc_send_dian.message_error_DIAN_3 = message_error_DIAN
+                                doc_send_dian.count_error_DIAN = 3
+                            elif doc_send_dian.count_error_DIAN == 3:
+                                company.in_contingency_4 = True
+                                company.date_init_contingency_4 = self._get_datetime()
+                                doc_send_dian.count_error_DIAN = 0
+                                if company.in_contingency_4 == True and self.contingency_3 == False:
+                                    document_type = self.document_type
+                                else:
+                                    document_type = self.document_type if self.contingency_3 == False else 'contingency'
+                                #document_type = self.document_type if self.contingency_3 == False and  self.contingency_4 == False else 'contingency'
+                                self.send_pending_dian(self.id, document_type)
+                        else:
+                            raise ValidationError(message_error_DIAN)
+
+                    else:
+                        # Procesa respuesta DIAN 
+                        response_dict = xmltodict.parse(response.content)
+                        dict_mensaje = {}
+                        if company.production:
+                            dict_mensaje = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid']
+                            doc_send_dian.response_message_dian = ' '
+                            if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid'] == 'true':
+                                doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
+                                doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
+                                doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
+                                doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
+                                doc_send_dian.xml_response_dian = response.content
+                                doc_send_dian.xml_send_query_dian = data_xml_send
+                                doc_send_dian.write({'state' : 'exitoso', 'resend' : False})
+                                if doc_send_dian.contingency_3:
+                                    doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
+                                data_header_doc.write({'diancode_id' : doc_send_dian.id})                        
+                                # Generar código QR
+                                doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                                # Envío de correo
+                                if doc_send_dian.contingency_4 == False:
+                                    if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
+                                        doc_send_dian.date_email_send = fields.Datetime.now()
+                            else:
+                                doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
+                                doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
+                                doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
+                                doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
+                                doc_send_dian.write({'state' : 'rechazado', 'resend' : True})
+                                if doc_send_dian.contingency_3:
+                                    doc_send_dian.write({'state_contingency' : 'rechazada', 'resend' : True})
+                                data_header_doc.write({'diancode_id' : doc_send_dian.id})
+                                doc_send_dian.xml_response_dian = response.content
+                                doc_send_dian.xml_send_query_dian = data_xml_send
+                                # Generar código QR
+                                doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                        else: # Ambiente de pruebas
+                            dict_mensaje = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']
+                            if '@i:nil' in dict_mensaje:
+                                if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['@i:nil'] == 'true':
+                                    doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                                    doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                                    doc_send_dian.state = 'por_validar'
+                                else:
+                                    doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                                    doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                                    doc_send_dian.state = 'por_notificar'
+                            elif 'i:nil' in dict_mensaje:
+                                if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['i:nil'] == 'true':
+                                    doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito. Falta validar su estado \n'
+                                    doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                                    doc_send_dian.state = 'por_validar'
+                                else:
+                                    doc_send_dian.response_message_dian = '- Respuesta envío: Documento enviado con éxito, pero la DIAN detectó errores \n'
+                                    doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ZipKey']
+                                    doc_send_dian.state = 'por_notificar'
+                            else:
+                                raise ValidationError('Mensaje de respuesta cambió en su estructura xml')
+                            # Generar código QR
+                            doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                else: # Contigencia tipo 4
+                    data_header_doc.contingency_4 = True                
+                    doc_send_dian.xml_document_contingency = data_xml_document
+                    doc_send_dian.xml_send_query_dian = data_xml_send
+                    # Generar código QR
+                    doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                    
+                    # Enviar email
+                    data_header_doc.write({'diancode_id' : doc_send_dian.id})
+                    if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
+                        doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
+                        doc_send_dian.date_email_send = fields.Datetime.now()
+                        doc_send_dian.xml_response_contingency_dian = 'XML de factura de contigencia enviada al cliente'
+                    else:
+                        doc_send_dian.write({'state_contingency' : 'rechazada', 'resend' : True})
+                        doc_send_dian.xml_response_dian = ' '
+                        doc_send_dian.xml_response_contingency_dian = 'XML de factura de contingencia no pudo ser enviada al cliente' 
+
+                    # Verificar si en la DIAN todavía persiste la falla tecnológica
+                    date_current = self._get_datetime()    
+                    date_current = datetime.strptime(date_current, '%Y-%m-%d %H:%M:%S')
+                    time_difference = date_current - company.date_init_contingency_4  
+                    if time_difference.days > 0 or (time_difference.seconds / 60) > 30:                          
+                        company.in_contingency_4 = False
+                        company.date_end_contingency_4 = date_current
         return  
 
 
+    @api.multi
     def enviar_email(self, data_xml_document, invoice_id, fileName):
         rs_invoice = self.env['account.invoice'].search([('id', '=', invoice_id)])
         dian_xml = base64.b64encode(data_xml_document.encode())
@@ -695,39 +759,10 @@ class DianDocument(models.Model):
         if plantilla_correo:
             plantilla_correo.attachment_ids = rs_invoice.xml_adjunto_ids
             plantilla_correo.send_mail(rs_invoice.id, force_send = True) 
-            return True
         else:       
             raise ValidationError("No existe la plantilla de correo email_template_edi_invoice_dian para el email")
+        return True
 
-
-    # @api.multi
-    # def enviar_email(self, data_xml_document, invoice_id, fileName):
-    #     rs_invoice = self.env['account.invoice'].search([('id', '=', invoice_id)])
-    #     dian_xml = base64.b64encode(data_xml_document.encode())
-    #     rs_invoice.write({'archivo_xml_invoice': dian_xml})
-    #     rs_adjunto = self.env['ir.attachment'].sudo()
-    #     dictAdjunto = {
-    #         'name': 'xml DIAN de factura',
-    #         'res_id': rs_invoice.id,
-    #         'res_model': 'account.invoice',
-    #         'res_model_name': 'Factura',
-    #         'res_field': 'archivo_xml_invoice',
-    #         'mimetype': 'application/xml;charset=utf-8',
-    #         'public': True,
-    #         'datas_fname': fileName,
-    #         'res_name': fileName,
-    #         'db_datas': dian_xml,
-    #     }
-    #     nuevo_adjunto = rs_adjunto.create(dictAdjunto)
-    #     rs_invoice.xml_adjunto_ids += nuevo_adjunto
-    #     plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-    #     if plantilla_correo:
-    #         plantilla_correo.attachment_ids = rs_invoice.xml_adjunto_ids
-    #         plantilla_correo.send_mail(rs_invoice.id, force_send = True) 
-    #         return True
-    #     else:       
-    #         raise ValidationError("No existe la plantilla de correo email_template_edi_invoice_dian para el email")
-                    
 
     @api.multi
     def _generate_SignatureValue_GetStatus(self, document_repository, password, data_xml_SignedInfo_generate, archivo_pem, archivo_certificado):
@@ -851,7 +886,7 @@ class DianDocument(models.Model):
         dian_constants['UBLVersionID'] = 'UBL 2.1'                                                      # Versión base de UBL usada. Debe marcar UBL 2.0
         dian_constants['ProfileID'] = 'DIAN 2.1'                                                        # Versión del Formato: Indicar versión del documento. Debe usarse "DIAN 1.0"
         dian_constants['CustomizationID'] = company.operation_type  
-        dian_constants['ProfileExecutionID'] = '1' if company.production else '2'                                                       # 1 = produccción 2 = prueba
+        dian_constants['ProfileExecutionID'] = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']                                                       # 1 = produccción 2 = prueba
         dian_constants['SupplierAdditionalAccountID'] = '1' if partner.is_company else '2'              # Persona natural o jurídica (persona natural, jurídica, gran contribuyente, otros)
         dian_constants['SupplierID'] = partner.xidentification if partner.xidentification else ''       # Identificador fiscal: En Colombia, el NIT
         dian_constants['SupplierSchemeID'] = partner.doctype
@@ -3136,6 +3171,100 @@ class DianDocument(models.Model):
         return data_getstatus_send_xml   
 
 
+    def _template_GetStatusExist_xml(self):
+        template_GetStatus_xml = """
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia">
+    <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+        <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
+            <wsu:Timestamp wsu:Id="TS-%(identifier)s">
+                <wsu:Created>%(Created)s</wsu:Created>
+                <wsu:Expires>%(Expires)s</wsu:Expires>
+            </wsu:Timestamp>
+            <wsse:BinarySecurityToken EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3" wsu:Id="BAKENDEVS-%(identifierSecurityToken)s">%(Certificate)s</wsse:BinarySecurityToken>
+            <ds:Signature Id="SIG-%(identifier)s" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                <ds:SignedInfo>
+                    <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+                        <ec:InclusiveNamespaces PrefixList="wsa soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+                    </ds:CanonicalizationMethod>
+                    <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+                    <ds:Reference URI="#ID-%(identifierTo)s">
+                        <ds:Transforms>
+                            <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+                                <ec:InclusiveNamespaces PrefixList="soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+                            </ds:Transform>
+                        </ds:Transforms>
+                        <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                        <ds:DigestValue></ds:DigestValue>
+                    </ds:Reference>
+                </ds:SignedInfo>
+                <ds:SignatureValue></ds:SignatureValue>
+                <ds:KeyInfo Id="KI-%(identifier)s">
+                    <wsse:SecurityTokenReference wsu:Id="STR-%(identifier)s">
+                        <wsse:Reference URI="#BAKENDEVS-%(identifierSecurityToken)s" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3"/>
+                    </wsse:SecurityTokenReference>
+                </ds:KeyInfo>
+            </ds:Signature>
+        </wsse:Security>
+        <wsa:Action>http://wcf.dian.colombia/IWcfDianCustomerServices/GetStatus</wsa:Action>
+        <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">https://vpfe.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
+    </soap:Header>
+    <soap:Body>
+        <wcf:GetStatus>
+            <wcf:trackId>%(trackId)s</wcf:trackId>
+        </wcf:GetStatus>
+    </soap:Body>
+</soap:Envelope>
+"""
+        return template_GetStatus_xml
+
+
+    def _template_GetStatusExistTest_xml(self):
+        template_GetStatus_xml = """
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia">
+    <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+        <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
+            <wsu:Timestamp wsu:Id="TS-%(identifier)s">
+                <wsu:Created>%(Created)s</wsu:Created>
+                <wsu:Expires>%(Expires)s</wsu:Expires>
+            </wsu:Timestamp>
+            <wsse:BinarySecurityToken EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3" wsu:Id="BAKENDEVS-%(identifierSecurityToken)s">%(Certificate)s</wsse:BinarySecurityToken>
+            <ds:Signature Id="SIG-%(identifier)s" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                <ds:SignedInfo>
+                    <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+                        <ec:InclusiveNamespaces PrefixList="wsa soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+                    </ds:CanonicalizationMethod>
+                    <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+                    <ds:Reference URI="#ID-%(identifierTo)s">
+                        <ds:Transforms>
+                            <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+                                <ec:InclusiveNamespaces PrefixList="soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+                            </ds:Transform>
+                        </ds:Transforms>
+                        <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                        <ds:DigestValue></ds:DigestValue>
+                    </ds:Reference>
+                </ds:SignedInfo>
+                <ds:SignatureValue></ds:SignatureValue>
+                <ds:KeyInfo Id="KI-%(identifier)s">
+                    <wsse:SecurityTokenReference wsu:Id="STR-%(identifier)s">
+                        <wsse:Reference URI="#BAKENDEVS-%(identifierSecurityToken)s" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3"/>
+                    </wsse:SecurityTokenReference>
+                </ds:KeyInfo>
+            </ds:Signature>
+        </wsse:Security>
+        <wsa:Action>http://wcf.dian.colombia/IWcfDianCustomerServices/GetStatus</wsa:Action>
+        <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
+    </soap:Header>
+    <soap:Body>
+        <wcf:GetStatus>
+            <wcf:trackId>%(trackId)s</wcf:trackId>
+        </wcf:GetStatus>
+    </soap:Body>
+</soap:Envelope>
+"""
+        return template_GetStatus_xml
+
+
     # @api.model
     # def _generate_GetTaxPayer_send_xml(self, template_getstatus_send_data_xml, identifier, Created, Expires,  Certificate, 
     #     identifierSecurityToken, identifierTo):
@@ -3215,6 +3344,49 @@ class DianDocument(models.Model):
                         }
         return data_send_xml
 
+# <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wcf="http://wcf.dian.colombia">
+#     <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+#         <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
+#             <wsu:Timestamp wsu:Id="TS-%(identifier)s">
+#                 <wsu:Created>%(Created)s</wsu:Created>
+#                 <wsu:Expires>%(Expires)s</wsu:Expires>
+#             </wsu:Timestamp>
+#             <wsse:BinarySecurityToken EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3" wsu:Id="BAKENDEVS-%(identifierSecurityToken)s">%(Certificate)s</wsse:BinarySecurityToken>
+#             <ds:Signature Id="SIG-%(identifier)s" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+#                 <ds:SignedInfo>
+#                     <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+#                         <ec:InclusiveNamespaces PrefixList="wsa soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+#                     </ds:CanonicalizationMethod>
+#                     <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+#                     <ds:Reference URI="#ID-%(identifierTo)s">
+#                         <ds:Transforms>
+#                             <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+#                                 <ec:InclusiveNamespaces PrefixList="soap wcf" xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+#                             </ds:Transform>
+#                         </ds:Transforms>
+#                         <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+#                         <ds:DigestValue></ds:DigestValue>
+#                     </ds:Reference>
+#                 </ds:SignedInfo>
+#                 <ds:SignatureValue></ds:SignatureValue>
+#                 <ds:KeyInfo Id="KI-%(identifier)s">
+#                     <wsse:SecurityTokenReference wsu:Id="STR-%(identifier)s">
+#                         <wsse:Reference URI="#BAKENDEVS-%(identifierSecurityToken)s" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3"/>
+#                     </wsse:SecurityTokenReference>
+#                 </ds:KeyInfo>
+#             </ds:Signature>
+#         </wsse:Security>
+#         <wsa:Action>http://wcf.dian.colombia/IWcfDianCustomerServices/SendBillSync</wsa:Action>
+#         <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
+#     </soap:Header>
+#     <soap:Body>
+#         <wcf:SendBillSync>
+#             <wcf:fileName>%(fileName)s</wcf:fileName>
+#             <wcf:contentFile>%(contentFile)s</wcf:contentFile>
+#         </wcf:SendBillSync>
+#     </soap:Body>
+# </soap:Envelope>
+# """
 
     def _template_SendBillSyncsend_xml(self):
         template_SendBillSyncsend_xml = """
@@ -3251,7 +3423,7 @@ class DianDocument(models.Model):
             </ds:Signature>
         </wsse:Security>
         <wsa:Action>http://wcf.dian.colombia/IWcfDianCustomerServices/SendBillSync</wsa:Action>
-        <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">vpfe.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
+        <wsa:To wsu:Id="ID-%(identifierTo)s" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">https://vpfe.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
     </soap:Header>
     <soap:Body>
         <wcf:SendBillSync>
@@ -3263,6 +3435,7 @@ class DianDocument(models.Model):
 """
         return template_SendBillSyncsend_xml
 
+            # <wcf:testSetId>%(testSetId)s</wcf:testSetId>
 
     @api.model
     def _generate_SendBillSync_send_xml(self, template_send_data_xml, fileName, contentFile, Created, 
