@@ -369,6 +369,7 @@ class DianDocument(models.Model):
         else:
             result_verify_status = False
         return result_verify_status 
+        
 
 
     @api.model
