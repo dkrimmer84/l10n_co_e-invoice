@@ -1,4 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_dian_document_group_user,access.dian.document.group.user,model_dian_document,base.group_user,1,1,1,1
-access_dian_fiscal_responsability_group_user,access.dian.fiscal.responsability.group.user,model_dian_fiscal_responsability,base.group_user,1,1,1,1
-access_dian_tributes_group_user,access.dian.tributes.group.user,model_dian_tributes,base.group_user,1,1,1,1
