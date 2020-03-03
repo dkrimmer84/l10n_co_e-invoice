@@ -90,16 +90,17 @@ server_url = {
     'PRODUCCION':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/facturaElectronica.wsdl',
     'HABILITACION_CONSULTA':'https://facturaelectronica.dian.gov.co/habilitacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl',
     'PRODUCCION_CONSULTA':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl',
-    #'PRODUCCION_VP':'https://vpfe.dian.gov.co/WcfDianCustomerServices.svc?wsdl',
-    'PRODUCCION_VP':'https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc?wsdl',                      
+    'PRODUCCION_VP':'https://vpfe.dian.gov.co/WcfDianCustomerServices.svc?wsdl',
+    #'PRODUCCION_VP':'https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc?wsdl',                      
     'HABILITACION_VP':'https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc?wsdl'
 }
 
+
 tipo_ambiente = {
-    #'PRODUCCION':'1',
-    'PRODUCCION':'2',
-    #'PRUEBA':'2',
-    'PRUEBA':'1'
+    'PRODUCCION':'1',
+    #'PRODUCCION':'2',
+    'PRUEBA':'2',
+    #'PRUEBA':'1'
 }
 
 tributes = {
