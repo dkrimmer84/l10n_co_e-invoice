@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data>
+
+    <template id="report_invoice_document_inherit" inherit_id="l10n_co_tax_extension.report_invoice_document_inherit">
+
+      <xpath expr="//div/h2/span[1]" position="replace"/>
+      <xpath expr="//div/h2" position="after">
+          <br /><br /><br />
+        <div class="row" t-if="o.diancode_id" style="margin-left:0px; margin-top: 25px;">
+          <div class="col-xs-2">
+            <h2 style="font-size:23px; margin-bottom: 15px; padding-bottom: 15px; margin-top: 20px;">
+                <span t-if="o.diancode_id.document_type == 'f'">Factura Electronica de Venta</span>
+                <span t-if="o.diancode_id.document_type == 'd'">Nota de Débito</span>
+                <span t-if="o.diancode_id.document_type == 'c'">Nota de Crédito</span>
+                <span t-field="o.diancode_id.dian_code"/>
+            </h2>
+          </div> 
+        </div>
+        <div class="row" t-if="not o.diancode_id and not o.resolution_number">    
+          <h2 style="margin-bottom: 15px; font-size: 25px; margin-left: 15px; margin-top:20px;"> 
+            <span t-if="o.type == 'out_invoice'">Factura Borrador</span>
+            <span t-if="o.type == 'out_refund'">Refund</span>
+            <span t-if="o.type == 'in_refund'">Vendor Refund</span>
+            <span t-if="o.type == 'in_invoice'">Vendor Bill</span>
+          </h2>
+        </div>
+
+        <div class="row" t-if="not o.diancode_id and o.resolution_number">
+          <h2 style="margin-bottom: 15px; font-size: 25px; margin-left: 15px; margin-top:20px;">
+            <span t-if="o.type == 'out_invoice'">Factura de Venta <span t-field="o.number" /></span>
+            <span t-if="o.type == 'out_refund'">Refund <span t-field="o.number" /></span>
+            <span t-if="o.type == 'in_refund'">Vendor Refund <span t-field="o.number" /></span>
+            <span t-if="o.type == 'in_invoice'">Vendor Bill <span t-field="o.number" /></span>
+          </h2>
+        </div>
+
+        <div class="row" t-if="o.diancode_id" style="margin-left: -4px; margin-right: 5px; float:left; margin-bottom: 15px;">
+          <div name="QR_code" class="col-xs-4">
+            <img width="95" height="95" class="media-object" t-att-src="image_data_uri(o.diancode_id.QR_code)"/>
+          </div>
+        </div>
+        
+      </xpath>
+
+      <xpath expr="//div[@t-if='o.tax_line_ids and o.at_least_one_tax_group_enabled()']/div/table/thead/tr/th[3]" position="replace">
+        <th class="text-right">Monto</th>
+      </xpath>
+      <xpath expr="//div[@t-if='o.tax_line_ids and o.at_least_one_tax_group_enabled()']/div/table/thead/tr/th[1]" position="replace">
+        <th>Impuesto</th>
+      </xpath>
+
+    </template>
+
+
+    <!--<template id="report_invoice_document_inherit_fe" inherit_id="account.report_invoice_document">
+      <xpath expr="//div//h2/span[1]" position="replace">
+        <br />
+        <span t-if="o.type == 'out_invoice' and (o.state == 'open' or o.state == 'paid')">Factura Electrónica de Venta</span>
+
+      </xpath>
+      
+    </template>-->
+</data>
+</odoo>

@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <data noupdate="1">
+        
+        <record id="fiscal_responsability_O-06" model="dian.fiscal.responsability">
+            <field name="code">O-06</field>
+            <field name="name">Ingresos y patrimonio</field>
+        </record>
+
+        <record id="fiscal_responsability_O-07" model="dian.fiscal.responsability">
+            <field name="code">O-07</field>
+            <field name="name">Retención en la fuente a título de renta</field>
+        </record>
+
+        <record id="fiscal_responsability_O-08" model="dian.fiscal.responsability">
+            <field name="code">O-08</field>
+            <field name="name">Retención timbre nacional</field>
+        </record>
+
+        <record id="fiscal_responsability_O-09" model="dian.fiscal.responsability">
+            <field name="code">O-09</field>
+            <field name="name">Retención en la fuente en el impuesto sobre las ventas</field>
+        </record>
+
+        <record id="fiscal_responsability_O-11" model="dian.fiscal.responsability">
+            <field name="code">O-11</field>
+            <field name="name">Ventas régimen común</field>
+        </record>
+
+        <record id="fiscal_responsability_O-12" model="dian.fiscal.responsability">
+            <field name="code">O-12</field>
+            <field name="name">Ventas régimen simplificado</field>
+        </record>
+
+        <record id="fiscal_responsability_O-13" model="dian.fiscal.responsability">
+            <field name="code">O-13</field>
+            <field name="name">Gran contribuyente</field>
+        </record>
+
+        <record id="fiscal_responsability_O-14" model="dian.fiscal.responsability">
+            <field name="code">O-14</field>
+            <field name="name">Informante de exógena</field>
+        </record>
+
+        <record id="fiscal_responsability_O-15" model="dian.fiscal.responsability">
+            <field name="code">O-15</field>
+            <field name="name">Autorretenedor</field>
+        </record>
+
+        <record id="fiscal_responsability_O-16" model="dian.fiscal.responsability">
+            <field name="code">O-16</field>
+            <field name="name">Obligación de facturar por ingresos de bienes y/o servicios excluidos</field>
+        </record>
+
+        <record id="fiscal_responsability_O-17" model="dian.fiscal.responsability">
+            <field name="code">O-17</field>
+            <field name="name">Profesionales de compra y venta de divisas</field>
+        </record>
+
+        <record id="fiscal_responsability_O-19" model="dian.fiscal.responsability">
+            <field name="code">O-19</field>
+            <field name="name">Productor y/o exportador de bienes exentos</field>
+        </record>
+
+        <record id="fiscal_responsability_O-22" model="dian.fiscal.responsability">
+            <field name="code">O-22</field>
+            <field name="name">Obligado a cumplir deberes formales a nombre de terceros</field>
+        </record>
+
+        <record id="fiscal_responsability_O-23" model="dian.fiscal.responsability">
+            <field name="code">O-23</field>
+            <field name="name">Agente de retención en el impuesto sobre las ventas</field>
+        </record>
+
+        <record id="fiscal_responsability_O-32" model="dian.fiscal.responsability">
+            <field name="code">O-32</field>
+            <field name="name">Impuesto Nacional a la Gasolina y al ACPM</field>
+        </record>
+
+        <record id="fiscal_responsability_O-33" model="dian.fiscal.responsability">
+            <field name="code">O-33</field>
+            <field name="name">Impuesto Nacional al consumo</field>
+        </record>
+
+        <record id="fiscal_responsability_O-34" model="dian.fiscal.responsability">
+            <field name="code">O-34</field>
+            <field name="name">Régimen simplificado impuesto nacional consumo rest y bares</field>
+        </record>
+
+        <record id="fiscal_responsability_O-36" model="dian.fiscal.responsability">
+            <field name="code">O-36</field>
+            <field name="name">Establecimiento Permanente</field>
+        </record>
+
+        <record id="fiscal_responsability_O-37" model="dian.fiscal.responsability">
+            <field name="code">O-37</field>
+            <field name="name">Obligado a Facturar Electrónicamente Modelo 2242</field>
+        </record>
+
+        <record id="fiscal_responsability_O-38" model="dian.fiscal.responsability">
+            <field name="code">O-38</field>
+            <field name="name">Facturación Electrónica Voluntaria Modelo 2242</field>
+        </record>
+
+        <record id="fiscal_responsability_O-39" model="dian.fiscal.responsability">
+            <field name="code">O-39</field>
+            <field name="name">Proveedor de Servicios Tecnológicos PST Modelo 2242</field>
+        </record>
+
+        <record id="fiscal_responsability_O-47" model="dian.fiscal.responsability">
+            <field name="code">O-47</field>
+            <field name="name">Régimen Simple de Tributación – SIMPLE</field>
+        </record>
+
+        <record id="fiscal_responsability_O-48" model="dian.fiscal.responsability">
+            <field name="code">O-48</field>
+            <field name="name">Impuesto sobre las ventas – IVA</field>
+        </record>
+
+        <record id="fiscal_responsability_O-49" model="dian.fiscal.responsability">
+            <field name="code">O-49</field>
+            <field name="name">No responsable de IVA</field>
+        </record>
+
+        <record id="fiscal_responsability_O-52" model="dian.fiscal.responsability">
+            <field name="code">O-52</field>
+            <field name="name">Facturador electrónico</field>
+        </record>
+
+        <record id="fiscal_responsability_O-99" model="dian.fiscal.responsability">
+            <field name="code">O-99</field>
+            <field name="name">Otro tipo de obligado</field>
+        </record>
+
+        <record id="fiscal_responsability_R-00-PN" model="dian.fiscal.responsability">
+            <field name="code">R-00-PN</field>
+            <field name="name">Clientes del Exterior</field>
+        </record>
+
+        <record id="fiscal_responsability_R-12-PN" model="dian.fiscal.responsability">
+            <field name="code">R-12-PN</field>
+            <field name="name">Factor PN</field>
+        </record>
+
+        <record id="fiscal_responsability_R-16-PN" model="dian.fiscal.responsability">
+            <field name="code">R-16-PN</field>
+            <field name="name">Mandatario PN</field>
+        </record>
+
+        <record id="fiscal_responsability_R-25-PN" model="dian.fiscal.responsability">
+            <field name="code">R-25-PN</field>
+            <field name="name">Agente Interventor PN</field>
+        </record>
+
+        <record id="fiscal_responsability_R-06-PJ" model="dian.fiscal.responsability">
+            <field name="code">R-06-PJ</field>
+            <field name="name">Apoderado especial PJ</field>
+        </record>
+
+        <record id="fiscal_responsability_R-07-PJ" model="dian.fiscal.responsability">
+            <field name="code">R-07-PJ</field>
+            <field name="name">Apoderado general PJ</field>
+        </record>
+
+        <record id="fiscal_responsability_R-12-PJ" model="dian.fiscal.responsability">
+            <field name="code">R-12-PJ</field>
+            <field name="name">Factor PJ</field>
+        </record>
+
+        <record id="fiscal_responsability_R-16-PJ" model="dian.fiscal.responsability">
+            <field name="code">R-16-PJ</field>
+            <field name="name">Mandatario PJ</field>
+        </record>
+
+        <record id="fiscal_responsability_R-99-PN" model="dian.fiscal.responsability">
+            <field name="code">R-99-PN</field>
+            <field name="name">No responsable PN</field>
+        </record>
+
+        <record id="fiscal_responsability_A-01" model="dian.fiscal.responsability">
+            <field name="code">A-01</field>
+            <field name="name">Agente de carga internacional</field>
+        </record>
+
+        <record id="fiscal_responsability_A-02" model="dian.fiscal.responsability">
+            <field name="code">A-02</field>
+            <field name="name">Agente marítimo</field>
+        </record>
+
+        <record id="fiscal_responsability_A-03" model="dian.fiscal.responsability">
+            <field name="code">A-03</field>
+            <field name="name">Almacén general de depósito</field>
+        </record>
+
+        <record id="fiscal_responsability_A-04" model="dian.fiscal.responsability">
+            <field name="code">A-04</field>
+            <field name="name">Comercializadora internacional (C.I.)</field>
+        </record>
+
+        <record id="fiscal_responsability_A-05" model="dian.fiscal.responsability">
+            <field name="code">A-05</field>
+            <field name="name">Comerciante de la zona aduanera especial de Inírida, Puerto Carreño, Cumaribo y Primavera</field>
+        </record>
+
+        <record id="fiscal_responsability_A-06" model="dian.fiscal.responsability">
+            <field name="code">A-06</field>
+            <field name="name">Comerciantes de la zona de régimen aduanero especial de Leticia</field>
+        </record>
+
+        <record id="fiscal_responsability_A-07" model="dian.fiscal.responsability">
+            <field name="code">A-07</field>
+            <field name="name">Comerciantes de la zona de régimen aduanero especial de Maicao, Uribia y Manaure</field>
+        </record>
+
+        <record id="fiscal_responsability_A-08" model="dian.fiscal.responsability">
+            <field name="code">A-08</field>
+            <field name="name">Comerciantes de la zona de régimen aduanero especial de Urabá, Tumaco y Guapí</field>
+        </record>
+
+        <record id="fiscal_responsability_A-09" model="dian.fiscal.responsability">
+            <field name="code">A-09</field>
+            <field name="name">Comerciantes del puerto libre de San Andrés, Providencia y Santa Catalina</field>
+        </record>
+
+        <record id="fiscal_responsability_A-10" model="dian.fiscal.responsability">
+            <field name="code">A-10</field>
+            <field name="name">Depósito público de apoyo logístico internacional</field>
+        </record>
+
+        <record id="fiscal_responsability_A-11" model="dian.fiscal.responsability">
+            <field name="code">A-11</field>
+            <field name="name">Depósito privado para procesamiento industrial</field>
+        </record>
+
+        <record id="fiscal_responsability_A-12" model="dian.fiscal.responsability">
+            <field name="code">A-12</field>
+            <field name="name">Depósito privado de transformación o ensamble</field>
+        </record>
+
+        <record id="fiscal_responsability_A-13" model="dian.fiscal.responsability">
+            <field name="code">A-13</field>
+            <field name="name">Depósito franco</field>
+        </record>
+
+        <record id="fiscal_responsability_A-14" model="dian.fiscal.responsability">
+            <field name="code">A-14</field>
+            <field name="name">Depósito privado aeronáutico</field>
+        </record>
+
+        <record id="fiscal_responsability_A-15" model="dian.fiscal.responsability">
+            <field name="code">A-15</field>
+            <field name="name">Depósito privado para distribución internacional</field>
+        </record>
+
+        <record id="fiscal_responsability_A-16" model="dian.fiscal.responsability">
+            <field name="code">A-16</field>
+            <field name="name">Depósito privado de provisiones de a bordo para consumo y para llevar</field>
+        </record>
+
+        <record id="fiscal_responsability_A-17" model="dian.fiscal.responsability">
+            <field name="code">A-17</field>
+            <field name="name">Depósito privado para envíos urgentes</field>
+        </record>
+
+        <record id="fiscal_responsability_A-18" model="dian.fiscal.responsability">
+            <field name="code">A-18</field>
+            <field name="name">Depósito privado</field>
+        </record>
+
+        <record id="fiscal_responsability_A-19" model="dian.fiscal.responsability">
+            <field name="code">A-19</field>
+            <field name="name">Depósito público</field>
+        </record>
+
+        <record id="fiscal_responsability_A-20" model="dian.fiscal.responsability">
+            <field name="code">A-20</field>
+            <field name="name">Depósito público para distribución internacional</field>
+        </record>
+
+        <record id="fiscal_responsability_A-21" model="dian.fiscal.responsability">
+            <field name="code">A-21</field>
+            <field name="name">Exportador de café</field>
+        </record>
+
+        <record id="fiscal_responsability_A-22" model="dian.fiscal.responsability">
+            <field name="code">A-22</field>
+            <field name="name">Exportador</field>
+        </record>
+
+        <record id="fiscal_responsability_A-23" model="dian.fiscal.responsability">
+            <field name="code">A-23</field>
+            <field name="name">Importador</field>
+        </record>
+
+        <record id="fiscal_responsability_A-24" model="dian.fiscal.responsability">
+            <field name="code">A-24</field>
+            <field name="name">Intermediario de tráfico postal y envíos urgentes</field>
+        </record>
+
+        <record id="fiscal_responsability_A-25" model="dian.fiscal.responsability">
+            <field name="code">A-25</field>
+            <field name="name">Operador de transporte multimodal</field>
+        </record>
+
+        <record id="fiscal_responsability_A-26" model="dian.fiscal.responsability">
+            <field name="code">A-26</field>
+            <field name="name">Sociedad de intermediación aduanera</field>
+        </record>
+
+        <record id="fiscal_responsability_A-27" model="dian.fiscal.responsability">
+            <field name="code">A-27</field>
+            <field name="name">Titular de puertos y muelles de servicio público o privado</field>
+        </record>
+
+        <record id="fiscal_responsability_A-28" model="dian.fiscal.responsability">
+            <field name="code">A-28</field>
+            <field name="name">Transportador nfor régimen de importación y/o exportación</field>
+        </record>
+
+        <record id="fiscal_responsability_A-29" model="dian.fiscal.responsability">
+            <field name="code">A-29</field>
+            <field name="name">Transportista nacional para operaciones del régimen de tránsito aduanero</field>
+        </record>
+
+        <record id="fiscal_responsability_A-30" model="dian.fiscal.responsability">
+            <field name="code">A-30</field>
+            <field name="name">Usuario comercial zona franca</field>
+        </record>
+
+        <record id="fiscal_responsability_A-32" model="dian.fiscal.responsability">
+            <field name="code">A-32</field>
+            <field name="name">Usuario industrial de bienes zona franca</field>
+        </record>
+
+        <record id="fiscal_responsability_A-34" model="dian.fiscal.responsability">
+            <field name="code">A-34</field>
+            <field name="name">Usuario industrial de servicios zona franca</field>
+        </record>
+
+        <record id="fiscal_responsability_A-36" model="dian.fiscal.responsability">
+            <field name="code">A-36</field>
+            <field name="name">Usuario operador de zona franca</field>
+        </record>
+
+        <record id="fiscal_responsability_A-37" model="dian.fiscal.responsability">
+            <field name="code">A-37</field>
+            <field name="name">Usuario aduanero permanente</field>
+        </record>
+
+        <record id="fiscal_responsability_A-38" model="dian.fiscal.responsability">
+            <field name="code">A-38</field>
+            <field name="name">Usuario altamente exportador</field>
+        </record>
+
+        <record id="fiscal_responsability_A-39" model="dian.fiscal.responsability">
+            <field name="code">A-39</field>
+            <field name="name">Usuario de zonas económicas especiales de exportación</field>
+        </record>
+
+        <record id="fiscal_responsability_A-40" model="dian.fiscal.responsability">
+            <field name="code">A-40</field>
+            <field name="name">Deposito privado de instalaciones industriales</field>
+        </record>
+
+        <record id="fiscal_responsability_A-41" model="dian.fiscal.responsability">
+            <field name="code">A-41</field>
+            <field name="name">Beneficiarios de programas especiales de exportación PEX</field>
+        </record>
+
+        <record id="fiscal_responsability_A-42" model="dian.fiscal.responsability">
+            <field name="code">A-42</field>
+            <field name="name">Depósitos privados para mercancías en tránsito San Andrés</field>
+        </record>
+
+        <record id="fiscal_responsability_A-43" model="dian.fiscal.responsability">
+            <field name="code">A-43</field>
+            <field name="name">Observadores de las operaciones de importación</field>
+        </record>
+
+        <record id="fiscal_responsability_A-44" model="dian.fiscal.responsability">
+            <field name="code">A-44</field>
+            <field name="name">Usuarios sistemas especiales Importación exportación</field>
+        </record>
+
+        <record id="fiscal_responsability_A-46" model="dian.fiscal.responsability">
+            <field name="code">A-46</field>
+            <field name="name">Transportador nformac régimen de importación y/o exportación</field>
+        </record>
+
+        <record id="fiscal_responsability_A-47" model="dian.fiscal.responsability">
+            <field name="code">A-47</field>
+            <field name="name">Transportador terrestre régimen de importación y/o exportación</field>
+        </record>
+
+        <record id="fiscal_responsability_A-48" model="dian.fiscal.responsability">
+            <field name="code">A-48</field>
+            <field name="name">Aeropuerto de servicio publico o privado</field>
+        </record>
+
+        <record id="fiscal_responsability_A-49" model="dian.fiscal.responsability">
+            <field name="code">A-49</field>
+            <field name="name">Transportador fluvial régimen de importación</field>
+        </record>
+
+        <record id="fiscal_responsability_A-50" model="dian.fiscal.responsability">
+            <field name="code">A-50</field>
+            <field name="name">Usuario industrial zona franca especial</field>
+        </record>
+
+        <record id="fiscal_responsability_A-53" model="dian.fiscal.responsability">
+            <field name="code">A-53</field>
+            <field name="name">Agencias de aduanas 1</field>
+        </record>
+
+        <record id="fiscal_responsability_A-54" model="dian.fiscal.responsability">
+            <field name="code">A-54</field>
+            <field name="name">Usuario Operador Zona Franca Especial</field>
+        </record>
+
+        <record id="fiscal_responsability_A-55" model="dian.fiscal.responsability">
+            <field name="code">A-55</field>
+            <field name="name">Agencias de aduanas 2</field>
+        </record>
+
+        <record id="fiscal_responsability_A-56" model="dian.fiscal.responsability">
+            <field name="code">A-56</field>
+            <field name="name">Agencias de aduanas 3</field>
+        </record>
+
+        <record id="fiscal_responsability_A-57" model="dian.fiscal.responsability">
+            <field name="code">A-57</field>
+            <field name="name">Agencias de aduanas 4</field>
+        </record>
+
+        <record id="fiscal_responsability_A-58" model="dian.fiscal.responsability">
+            <field name="code">A-58</field>
+            <field name="name">Transportador aéreo nacional</field>
+        </record>
+
+        <record id="fiscal_responsability_A-60" model="dian.fiscal.responsability">
+            <field name="code">A-60</field>
+            <field name="name">Transportador aéreo, marítimo o fluvial modalidad Cabotaje</field>
+        </record>
+
+        <record id="fiscal_responsability_A-61" model="dian.fiscal.responsability">
+            <field name="code">A-61</field>
+            <field name="name">Importador de alimentos de consumo humano y animal</field>
+        </record>
+
+        <record id="fiscal_responsability_A-62" model="dian.fiscal.responsability">
+            <field name="code">A-62</field>
+            <field name="name">Importador Ocasional</field>
+        </record>
+
+        <record id="fiscal_responsability_A-63" model="dian.fiscal.responsability">
+            <field name="code">A-63</field>
+            <field name="name">Importador de maquinaría y sus partes Decreto 2261 de 2012</field>
+        </record>
+
+        <record id="fiscal_responsability_A-64" model="dian.fiscal.responsability">
+            <field name="code">A-64</field>
+            <field name="name">Beneficiario Programa de Fomento Industria Automotriz-PROFIA</field>
+        </record>
+
+        <record id="fiscal_responsability_A-99" model="dian.fiscal.responsability">
+            <field name="code">A-99</field>
+            <field name="name">Otro tipo de agente aduanero</field>
+        </record>
+
+        <record id="fiscal_responsability_E-01" model="dian.fiscal.responsability">
+            <field name="code">E-01</field>
+            <field name="name">Agencia</field>
+        </record>
+
+        <record id="fiscal_responsability_E-02" model="dian.fiscal.responsability">
+            <field name="code">E-02</field>
+            <field name="name">Establecimiento de comercio</field>
+        </record>
+
+        <record id="fiscal_responsability_E-03" model="dian.fiscal.responsability">
+            <field name="code">E-03</field>
+            <field name="name">Centro de explotación agrícola</field>
+        </record>
+
+        <record id="fiscal_responsability_E-04" model="dian.fiscal.responsability">
+            <field name="code">E-04</field>
+            <field name="name">Centro de explotación animal</field>
+        </record>
+
+        <record id="fiscal_responsability_E-05" model="dian.fiscal.responsability">
+            <field name="code">E-05</field>
+            <field name="name">Centro de explotación minera</field>
+        </record>
+
+        <record id="fiscal_responsability_E-06" model="dian.fiscal.responsability">
+            <field name="code">E-06</field>
+            <field name="name">Centro de explotación de transformación</field>
+        </record>
+
+        <record id="fiscal_responsability_E-07" model="dian.fiscal.responsability">
+            <field name="code">E-07</field>
+            <field name="name">Centro de explotación de servicios</field>
+        </record>
+
+        <record id="fiscal_responsability_E-08" model="dian.fiscal.responsability">
+            <field name="code">E-08</field>
+            <field name="name">Oficina</field>
+        </record>
+
+        <record id="fiscal_responsability_E-09" model="dian.fiscal.responsability">
+            <field name="code">E-09</field>
+            <field name="name">Sede</field>
+        </record>
+
+        <record id="fiscal_responsability_E-10" model="dian.fiscal.responsability">
+            <field name="code">E-10</field>
+            <field name="name">Sucursal</field>
+        </record>
+
+        <record id="fiscal_responsability_E-11" model="dian.fiscal.responsability">
+            <field name="code">E-11</field>
+            <field name="name">Consultorio</field>
+        </record>
+
+        <record id="fiscal_responsability_E-12" model="dian.fiscal.responsability">
+            <field name="code">E-12</field>
+            <field name="name">Administraciones</field>
+        </record>
+
+        <record id="fiscal_responsability_E-13" model="dian.fiscal.responsability">
+            <field name="code">E-13</field>
+            <field name="name">Seccionales</field>
+        </record>
+
+        <record id="fiscal_responsability_E-14" model="dian.fiscal.responsability">
+            <field name="code">E-14</field>
+            <field name="name">Regionales</field>
+        </record>
+
+        <record id="fiscal_responsability_E-15" model="dian.fiscal.responsability">
+            <field name="code">E-15</field>
+            <field name="name">Intendencias</field>
+        </record>
+
+        <record id="fiscal_responsability_E-16" model="dian.fiscal.responsability">
+            <field name="code">E-16</field>
+            <field name="name">Local o negocio</field>
+        </record>
+
+        <record id="fiscal_responsability_E-17" model="dian.fiscal.responsability">
+            <field name="code">E-17</field>
+            <field name="name">Punto de venta</field>
+        </record>
+
+        <record id="fiscal_responsability_E-18" model="dian.fiscal.responsability">
+            <field name="code">E-18</field>
+            <field name="name">Fábrica</field>
+        </record>
+
+        <record id="fiscal_responsability_E-19" model="dian.fiscal.responsability">
+            <field name="code">E-19</field>
+            <field name="name">Taller</field>
+        </record>
+
+        <record id="fiscal_responsability_E-20" model="dian.fiscal.responsability">
+            <field name="code">E-20</field>
+            <field name="name">Cantera</field>
+        </record>
+
+        <record id="fiscal_responsability_E-21" model="dian.fiscal.responsability">
+            <field name="code">E-21</field>
+            <field name="name">Pozo de Petróleo y Gas</field>
+        </record>
+
+        <record id="fiscal_responsability_E-22" model="dian.fiscal.responsability">
+            <field name="code">E-22</field>
+            <field name="name">Otro lug de tipo de extrac explotación de recursos naturales</field>
+        </record>
+
+        <record id="fiscal_responsability_E-99" model="dian.fiscal.responsability">
+            <field name="code">E-99</field>
+            <field name="name">Otro tipo de establecimiento</field>
+        </record>
+
+    </data>
+</odoo>

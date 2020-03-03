@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+
+    <record id="sequence_view_extended" model="ir.ui.view">
+        <field name="name">extension de secuenciador dian</field>
+        <field name="model">ir.sequence</field>
+        <field name="inherit_id" ref="l10n_co_tax_extension.sequence_view"></field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='active_resolution']" position="after">
+                <field name="technical_key"/>
+            </xpath>
+        </field>
+    </record>
+
+
+</odoo>
