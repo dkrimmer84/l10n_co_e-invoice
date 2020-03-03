@@ -90,16 +90,16 @@ server_url = {
     'PRODUCCION':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/facturaElectronica.wsdl',
     'HABILITACION_CONSULTA':'https://facturaelectronica.dian.gov.co/habilitacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl',
     'PRODUCCION_CONSULTA':'https://facturaelectronica.dian.gov.co/operacion/B2BIntegrationEngine/FacturaElectronica/consultaDocumentos.wsdl',
-    'PRODUCCION_VP':'https://vpfe.dian.gov.co/WcfDianCustomerServices.svc?wsdl',
-    #'PRODUCCION_VP':'https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc?wsdl',                      
+    #'PRODUCCION_VP':'https://vpfe.dian.gov.co/WcfDianCustomerServices.svc?wsdl',
+    'PRODUCCION_VP':'https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc?wsdl',                      
     'HABILITACION_VP':'https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc?wsdl'
 }
 
 tipo_ambiente = {
-    'PRODUCCION':'1',
-    #'PRODUCCION':'2',
-    'PRUEBA':'2',
-    #'PRUEBA':'1'
+    #'PRODUCCION':'1',
+    'PRODUCCION':'2',
+    #'PRUEBA':'2',
+    'PRUEBA':'1'
 }
 
 tributes = {
@@ -255,10 +255,11 @@ class DianDocument(models.Model):
         data_xml_send = data_xml_send.replace('<ds:SignatureValue/>','<ds:SignatureValue>%s</ds:SignatureValue>' % SignatureValue)
         #   Contruye XML de envío de petición
         headers = {'content-type': 'application/soap+xml'}
+        URL_WEBService_DIAN = server_url['PRODUCCION_VP'] if company.production else server_url['HABILITACION_VP']
         try:
-             response = requests.post(server_url['HABILITACION_VP'],data=data_xml_send,headers=headers)
+            response = requests.post(URL_WEBService_DIAN,data=data_xml_send,headers=headers)
         except:
-             raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+            raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas. Por favor, revise su red o el acceso a internet.')
         #   Respuesta de petición
         if response.status_code != 200: # Respuesta de envío no exitosa
             if response.status_code == 500:
@@ -298,7 +299,7 @@ class DianDocument(models.Model):
 
     @api.model
     def exist_dian(self, document_id):
-        result_verify_status = False
+        dic_result_verify_status  = {}
         user = self.env['res.users'].search([('id', '=', self.env.uid)])
         company = self.env['res.company'].search([('id', '=', user.company_id.id)])
     
@@ -306,6 +307,18 @@ class DianDocument(models.Model):
         data_header_doc = self.env['account.invoice'].search([('id', '=', dian_document.document_id.id)])
         dian_constants = self._get_dian_constants(data_header_doc)
         trackId = dian_document.ZipKey
+        #FE001 HA SIDO AUTORIZADA
+        #trackId = 'ede7353a4efabe1ba056002ea04ddfe84129cf3b354d74ebac98f85292df716aa7412578165ae0fa913976a9af505f70'
+        #FE002 NO EXISTE EN LOS REGISTRO DE LA DIAN
+        #trackId = '146cda4f431f318c286ec263904cb865a21f30530bc5bd762a8c3adb58e071ee41704592e76a2a73780b13c99ca47ced'
+        #FE003 NO EXISTE EN LOS REGISTRO DE LA DIAN
+        #trackId = '5c66fa23c3978a0b8c627277b9f4d721ec3ead5a9133d6e3d0e559c3b1e6a20e1e3af5cbfac0feac88e8717c726c7a46'
+        #FE004 NO EXISTE EN LOS REGISTRO DE LA DIAN
+        #trackId = '8da114b6a259fe54d9686f4bc31595101028282e1b05bc5cbad5722187d9e7e8c7b4383de91e405462c19f1bba2a465c'
+        #FE005 HA SIDO AUTORIZADA
+        #trackId = '4bb8574baaa0060b5eaf4d9f6859855fce5104c8747f123b5b091628926a2d3be22cd79e426d571f7835c2a9e063f888'
+        #FE006 HA SIDO AUTORIZADA
+        #trackId = '0bee98777dd81d3c52b8ebce9adbd8eaa610da0dcdbccf88fab284610a976b88f86d72d7c9acc2eaf291deb2b56abbb8'
         identifier = uuid.uuid4()
         identifierTo = uuid.uuid4()
         identifierSecurityToken = uuid.uuid4()
@@ -347,10 +360,11 @@ class DianDocument(models.Model):
         data_xml_send = data_xml_send.replace('<ds:SignatureValue/>','<ds:SignatureValue>%s</ds:SignatureValue>' % SignatureValue)
         #   Contruye XML de envío de petición
         headers = {'content-type': 'application/soap+xml'}
+        URL_WEBService_DIAN = server_url['PRODUCCION_VP'] if company.production else server_url['HABILITACION_VP']
         try:
-             response = requests.post(server_url['HABILITACION_VP'],data=data_xml_send,headers=headers)
+            response = requests.post(URL_WEBService_DIAN,data=data_xml_send,headers=headers)
         except:
-             raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas')
+            raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas. Por favor, revise su red o el acceso a internet.')
         #   Respuesta de petición
         if response.status_code != 200: # Respuesta de envío no exitosa
             if response.status_code == 500:
@@ -364,17 +378,29 @@ class DianDocument(models.Model):
             else:
                 raise ValidationError('Se ha producido un error de comunicación con la DIAN.')
         response_dict = xmltodict.parse(response.content)
+
+        dic_result_verify_status['result_verify_status'] = False
         if response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusCode'] == '00':
-            result_verify_status = True
-        else:
-            result_verify_status = False
-        return result_verify_status 
-        
+            dic_result_verify_status['result_verify_status'] = True
+
+        dic_result_verify_status['response_message_dian'] = response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusCode'] + ' '  
+        dic_result_verify_status['response_message_dian'] += response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusDescription'] + '\n'
+        #dic_result_verify_status['response_message_dian'] += response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusMessage']
+        dic_result_verify_status['ZipKey'] = response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:XmlDocumentKey']
+
+        # print('-------------------------------------------------------------------')
+        # print('(response.content ', response.content)
+        # #print('(data_xml_send ', data_xml_send)
+        # print('-------------------------------------------------------------------')
+        # print(aaaaaa)
+
+        return dic_result_verify_status 
 
 
     @api.model
     def send_pending_dian(self, document_id, document_type):
-        if self.exist_dian(self.id) == False:
+        dic_result_verify_status = self.exist_dian(self.id) 
+        if dic_result_verify_status['result_verify_status'] == False:
             resultado = self._get_datetime()
             user = self.env['res.users'].search([('id', '=', self.env.uid)])
             company = self.env['res.company'].search([('id', '=', user.company_id.id)])
@@ -605,7 +631,7 @@ class DianDocument(models.Model):
                 URL_WEBService_DIAN = server_url['PRODUCCION_VP'] if company.production else server_url['HABILITACION_VP']
 
                 if company.in_contingency_4 == False: # Diferente a contingencia tipo 4 (Problemas tecnológicos en la DIAN)
-                    
+
                     try:
                         response = requests.post(URL_WEBService_DIAN,data=data_xml_send,headers=headers)
                     except:
@@ -646,16 +672,19 @@ class DianDocument(models.Model):
                                 self.send_pending_dian(self.id, document_type)
                         else:
                             raise ValidationError(message_error_DIAN)
-
                     else:
                         # Procesa respuesta DIAN 
                         response_dict = xmltodict.parse(response.content)
                         dict_mensaje = {}
                         if company.production:
+                            dict_result_verify_status = self.exist_dian(self.id) 
+                            if dict_result_verify_status['result_verify_status'] == True:
+                                return
                             dict_mensaje = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid']
                             doc_send_dian.response_message_dian = ' '
-                            if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid'] == 'true':
-                                doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
+                            #if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid'] == 'true':
+                            if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] == '00':
+                                doc_send_dian.response_message_dian = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
                                 doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
@@ -663,7 +692,7 @@ class DianDocument(models.Model):
                                 doc_send_dian.xml_send_query_dian = data_xml_send
                                 doc_send_dian.write({'state' : 'exitoso', 'resend' : False})
                                 if doc_send_dian.contingency_3:
-                                    doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
+                                    doc_send_dian.write({'state_contingency' : 'exitosa'})
                                 data_header_doc.write({'diancode_id' : doc_send_dian.id})                        
                                 # Generar código QR
                                 doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
@@ -672,16 +701,16 @@ class DianDocument(models.Model):
                                     if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
                                         doc_send_dian.date_email_send = fields.Datetime.now()
                             else:
-                                doc_send_dian.response_message_dian  = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
+                                doc_send_dian.response_message_dian = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
                                 doc_send_dian.ZipKey = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:XmlDocumentKey']
-                                doc_send_dian.write({'state' : 'rechazado', 'resend' : True})
-                                if doc_send_dian.contingency_3:
-                                    doc_send_dian.write({'state_contingency' : 'rechazada', 'resend' : True})
-                                data_header_doc.write({'diancode_id' : doc_send_dian.id})
                                 doc_send_dian.xml_response_dian = response.content
                                 doc_send_dian.xml_send_query_dian = data_xml_send
+                                doc_send_dian.write({'state' : 'rechazado', 'resend' : True})
+                                if doc_send_dian.contingency_3:
+                                    doc_send_dian.write({'state_contingency' : 'rechazada'})
+                                data_header_doc.write({'diancode_id' : doc_send_dian.id})
                                 # Generar código QR
                                 doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
                         else: # Ambiente de pruebas

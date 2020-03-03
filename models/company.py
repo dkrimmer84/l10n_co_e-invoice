@@ -84,7 +84,7 @@ class Company(models.Model):
     ('11','Mandatos bienes'),('12','Mandatos Servicios')], string='Tipo de operación DIAN', required=True)
     pem = fields.Char(string="Nombre del archivo PEM del certificado", required=True, default="")
     certificate = fields.Char(string="Nombre del archivo del certificado", required=True, default="")
-    production = fields.Boolean(string='Pase a producción', default=0)
+    production = fields.Boolean(string='Pase a producción', default=False)
     xml_response_numbering_range = fields.Text(string='Contenido XML de la respuesta DIAN a la consulta de rangos', readonly=True)
     in_contingency_4 = fields.Boolean(string="En contingencia", default=False)
     date_init_contingency_4 = fields.Datetime(string='Fecha de inicio de contingencia 4')
