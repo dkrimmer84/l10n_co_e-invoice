@@ -212,9 +212,8 @@ class DianDocument(models.Model):
 
     @api.model
     def request_validating_dian(self, document_id):
-        user = self.env['res.users'].search([('id', '=', self.env.uid)])
-        company = self.env['res.company'].search([('id', '=', user.company_id.id)])
-    
+        user = self.env['res.users'].sudo().search([('id', '=', self.env.uid)])
+        company = self.env['res.company'].sudo().search([('id', '=', user.company_id.id)])
         dian_document = self.env['dian.document'].search([('id', '=', document_id)])
         data_header_doc = self.env['account.invoice'].search([('id', '=', dian_document.document_id.id)])
         dian_constants = self._get_dian_constants(data_header_doc)
@@ -225,7 +224,6 @@ class DianDocument(models.Model):
         timestamp = self._generate_datetime_timestamp()
         Created = timestamp['Created']
         Expires = timestamp['Expires']
-
         template_GetStatus_xml = self._template_GetStatus_xml()
         data_xml_send = self._generate_GetStatus_send_xml(template_GetStatus_xml, identifier, Created, Expires, 
             dian_constants['Certificate'], identifierSecurityToken, identifierTo, trackId)
@@ -308,18 +306,6 @@ class DianDocument(models.Model):
         data_header_doc = self.env['account.invoice'].search([('id', '=', dian_document.document_id.id)])
         dian_constants = self._get_dian_constants(data_header_doc)
         trackId = dian_document.ZipKey
-        #FE001 HA SIDO AUTORIZADA
-        #trackId = 'ede7353a4efabe1ba056002ea04ddfe84129cf3b354d74ebac98f85292df716aa7412578165ae0fa913976a9af505f70'
-        #FE002 NO EXISTE EN LOS REGISTRO DE LA DIAN
-        #trackId = '146cda4f431f318c286ec263904cb865a21f30530bc5bd762a8c3adb58e071ee41704592e76a2a73780b13c99ca47ced'
-        #FE003 NO EXISTE EN LOS REGISTRO DE LA DIAN
-        #trackId = '5c66fa23c3978a0b8c627277b9f4d721ec3ead5a9133d6e3d0e559c3b1e6a20e1e3af5cbfac0feac88e8717c726c7a46'
-        #FE004 NO EXISTE EN LOS REGISTRO DE LA DIAN
-        #trackId = '8da114b6a259fe54d9686f4bc31595101028282e1b05bc5cbad5722187d9e7e8c7b4383de91e405462c19f1bba2a465c'
-        #FE005 HA SIDO AUTORIZADA
-        #trackId = '4bb8574baaa0060b5eaf4d9f6859855fce5104c8747f123b5b091628926a2d3be22cd79e426d571f7835c2a9e063f888'
-        #FE006 HA SIDO AUTORIZADA
-        #trackId = '0bee98777dd81d3c52b8ebce9adbd8eaa610da0dcdbccf88fab284610a976b88f86d72d7c9acc2eaf291deb2b56abbb8'
         identifier = uuid.uuid4()
         identifierTo = uuid.uuid4()
         identifierSecurityToken = uuid.uuid4()
@@ -388,13 +374,6 @@ class DianDocument(models.Model):
         dic_result_verify_status['response_message_dian'] += response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusDescription'] + '\n'
         #dic_result_verify_status['response_message_dian'] += response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusMessage']
         dic_result_verify_status['ZipKey'] = response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:XmlDocumentKey']
-
-        # print('-------------------------------------------------------------------')
-        # print('(response.content ', response.content)
-        # #print('(data_xml_send ', data_xml_send)
-        # print('-------------------------------------------------------------------')
-        # print(aaaaaa)
-
         return dic_result_verify_status 
 
 
@@ -404,7 +383,7 @@ class DianDocument(models.Model):
         if dic_result_verify_status['result_verify_status'] == False:
             resultado = self._get_datetime()
             user = self.env['res.users'].search([('id', '=', self.env.uid)])
-            company = self.env['res.company'].search([('id', '=', user.company_id.id)])
+            company = self.env['res.company'].sudo().search([('id', '=', user.company_id.id)])
             data_lines_xml = ''
             data_credit_lines_xml = ''
             data_xml_signature = ''
@@ -627,7 +606,7 @@ class DianDocument(models.Model):
                 SignatureValue = self._generate_SignatureValue_GetStatus(dian_constants['document_repository'], dian_constants['CertificateKey'], Signedinfo, dian_constants['archivo_pem'], dian_constants['archivo_certificado'])
                 data_xml_send = data_xml_send.replace('<ds:SignatureValue/>','<ds:SignatureValue>%s</ds:SignatureValue>' % SignatureValue)
                 
-                #   Contruye XML de envío de petición
+                #   Contruye XML de envío de petición                
                 headers = {'content-type': 'application/soap+xml'}
                 URL_WEBService_DIAN = server_url['PRODUCCION_VP'] if company.production else server_url['HABILITACION_VP']
 
@@ -696,7 +675,7 @@ class DianDocument(models.Model):
                                     doc_send_dian.write({'state_contingency' : 'exitosa'})
                                 data_header_doc.write({'diancode_id' : doc_send_dian.id})                        
                                 # Generar código QR
-                                doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                                doc_send_dian.QR_code = self.sudo()._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
                                 # Envío de correo
                                 if doc_send_dian.contingency_4 == False:
                                     if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
@@ -713,7 +692,7 @@ class DianDocument(models.Model):
                                     doc_send_dian.write({'state_contingency' : 'rechazada'})
                                 data_header_doc.write({'diancode_id' : doc_send_dian.id})
                                 # Generar código QR
-                                doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                                doc_send_dian.QR_code = self.sudo()._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
                         else: # Ambiente de pruebas
                             dict_mensaje = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']
                             if '@i:nil' in dict_mensaje:
@@ -737,13 +716,13 @@ class DianDocument(models.Model):
                             else:
                                 raise ValidationError('Mensaje de respuesta cambió en su estructura xml')
                             # Generar código QR
-                            doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                            doc_send_dian.QR_code = self.sudo()._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
                 else: # Contigencia tipo 4
                     data_header_doc.contingency_4 = True                
                     doc_send_dian.xml_document_contingency = data_xml_document
                     doc_send_dian.xml_send_query_dian = data_xml_send
                     # Generar código QR
-                    doc_send_dian.QR_code = self._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
+                    doc_send_dian.QR_code = self.sudo()._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
                     
                     # Enviar email
                     data_header_doc.write({'diancode_id' : doc_send_dian.id})
@@ -768,7 +747,7 @@ class DianDocument(models.Model):
 
     @api.multi
     def enviar_email(self, data_xml_document, invoice_id, fileName):
-        rs_invoice = self.env['account.invoice'].search([('id', '=', invoice_id)])
+        rs_invoice = self.env['account.invoice'].sudo().search([('id', '=', invoice_id)])
         dian_xml = base64.b64encode(data_xml_document.encode())
         rs_invoice.write({'archivo_xml_invoice': dian_xml})
         rs_adjunto = self.env['ir.attachment'].sudo()

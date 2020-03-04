@@ -338,13 +338,13 @@ class AccountInvoice(models.Model):
                 document_type = document_dian.document_type if self.contingency_3 == False else 'contingency'
             document_dian.send_pending_dian(document_dian.id, document_type)
 
-        company = self.env['res.company'].search([('id', '=', self.company_id.id)])
+        company = self.env['res.company'].sudo().search([('id', '=', self.company_id.id)])
         # Ambiente pruebas
         if company.production == False and self.in_contingency_4 == False:
             if document_dian.state == 'por_validar':
                 document_dian.request_validating_dian(document_dian.id)
         # Determina si existen facturas con contingencias tipo 4 que no han sidoenviadas a la DIAN
-        company.exists_invoice_contingency_4 = False
+        #company.exists_invoice_contingency_4 = False
         documents_dian_contingency = self.env['dian.document'].search([('state', '=', 'por_notificar'), ('contingency_4', '=', True), ('document_type', '=', 'f')])
         for document_dian_contingency in documents_dian_contingency:
             company.exists_invoice_contingency_4 = True 
