@@ -48,7 +48,7 @@
                 </field>
                 <field name="state" position="before">
                     <field name="state_dian_document" invisible = "1"/>
-                    <button name="valitade_dian" states="open,paid" string="Validar DIAN" type="object" attrs="{'invisible' : ['|','|',('state_dian_document', '=', 'exitoso'),('type', 'not in', ('out_invoice','out_refund'))]}" groups="account.group_account_invoice" class="oe_highlight"/>
+                    <button style="background: #f34e4e; border: black;" name="valitade_dian" states="open,paid" string="Validar DIAN" type="object" attrs="{'invisible' : ['|','|',('state_dian_document', '=', 'exitoso'),('type', 'not in', ('out_invoice','out_refund'))]}" groups="account.group_account_invoice" class="oe_highlight"/>
 <!-- 
                     <button type="object" name="action_invoice_dian_send_contingency3" string="Enviar Contingencia tipo 3 a la DIAN" attrs="{'invisible' : ['|','|',('contingency_3', '=', False),('state_contingency','=','exitosa'),('type', '!=', 'out_invoice')]}" help="Contigencia tipo 3 - Cuando el facturador no puede expedir la factura electrónica por inconvenientes tecnológicos"/> -->
                     
