@@ -269,7 +269,7 @@ class AccountInvoice(models.Model):
                 mensaje += '- El cliente no tiene asociada un municipio.' + '\n'
             if not self.partner_id.street:
                 mensaje += '- El cliente no tiene asociada una dirección.' + '\n'
-            if not partner.tribute_id:
+            if not self.partner_id.tribute_id:
                 mensaje += '- El cliente no tiene asociada un tributo de los indicados en la tabla 6.2.2 Tributos indicado en la tabla 6.2.2 Tributos, para solucionarlo abra el cliente y busque asegure que el campo tributos tiene valor' + '\n' 
             if not self.partner_id.email:
                 mensaje += '- El cliente no tiene definido un email.' + '\n'

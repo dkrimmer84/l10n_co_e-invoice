@@ -2807,7 +2807,7 @@ class DianDocument(models.Model):
         # len_prefix = len(data_resolution['Prefix'])
         # len_invoice = len(data_resolution['InvoiceID'])        
         secuenciador = data_resolution['InvoiceID'] 
-        dian_code_int = int(re.sub('\D', '', secuenciador))      
+        dian_code_int = int(re.sub('\D', '', secuenciador)) 
         #dian_code_int = int(data_resolution['InvoiceID'][len_prefix:len_invoice])
         dian_code_hex = self.IntToHex(dian_code_int)
         dian_code_hex.zfill(10)
