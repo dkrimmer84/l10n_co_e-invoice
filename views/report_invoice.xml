@@ -5,45 +5,34 @@
     <template id="report_invoice_document_inherit" inherit_id="l10n_co_tax_extension.report_invoice_document_inherit">
 
       <xpath expr="//div/h2/span[1]" position="replace"/>
-
-
-      <xpath expr="//t[@t-if='o.reference']" position="after">
-        <t t-if="o.diancode_id.cufe"><br /><strong>CUFE: </strong> <span t-field="o.diancode_id.cufe" /></t> 
-      </xpath>
-
       <xpath expr="//div/h2" position="after">
-       <br />
+          <br /><br /><br />
         <div class="row" t-if="o.diancode_id" style="margin-left:0px; margin-top: 25px;">
           <div class="col-xs-2">
-            <span style="font-size:23px; padding-bottom: 15px; margin-top: 20px;">
-                <span t-if="o.diancode_id.document_type == 'f'">Factura de venta</span>
+            <h2 style="font-size:23px; margin-bottom: 15px; padding-bottom: 15px; margin-top: 20px;">
+                <span t-if="o.diancode_id.document_type == 'f'">Factura Electronica de Venta</span>
                 <span t-if="o.diancode_id.document_type == 'd'">Nota de Débito</span>
                 <span t-if="o.diancode_id.document_type == 'c'">Nota de Crédito</span>
                 <span t-field="o.diancode_id.dian_code"/>
-            </span>
-            <br/>
+            </h2>
           </div> 
         </div>
-        <div class="row" t-if="not o.diancode_id and not o.resolution_number">  
-        <br/>  
-          <span style="font-size:23px; margin-left: 15px; padding-bottom: 15px; margin-top: 20px;">
+        <div class="row" t-if="not o.diancode_id and not o.resolution_number">    
+          <h2 style="margin-bottom: 15px; font-size: 25px; margin-left: 15px; margin-top:20px;"> 
             <span t-if="o.type == 'out_invoice'">Factura Borrador</span>
             <span t-if="o.type == 'out_refund'">Refund</span>
             <span t-if="o.type == 'in_refund'">Vendor Refund</span>
             <span t-if="o.type == 'in_invoice'">Vendor Bill</span>
-          </span>
-          <br/>
+          </h2>
         </div>
 
         <div class="row" t-if="not o.diancode_id and o.resolution_number">
-          <br/>
-          <span style="font-size:23px; margin-left: 15px; padding-bottom: 15px; margin-top: 20px;">
+          <h2 style="margin-bottom: 15px; font-size: 25px; margin-left: 15px; margin-top:20px;">
             <span t-if="o.type == 'out_invoice'">Factura de Venta <span t-field="o.number" /></span>
             <span t-if="o.type == 'out_refund'">Refund <span t-field="o.number" /></span>
             <span t-if="o.type == 'in_refund'">Vendor Refund <span t-field="o.number" /></span>
             <span t-if="o.type == 'in_invoice'">Vendor Bill <span t-field="o.number" /></span>
-          </span>
-          <br/>
+          </h2>
         </div>
 
         <div class="row" t-if="o.diancode_id" style="margin-left: -4px; margin-right: 5px; float:left; margin-bottom: 15px;">
