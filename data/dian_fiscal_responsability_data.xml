@@ -69,7 +69,7 @@
 
         <record id="fiscal_responsability_O-23" model="dian.fiscal.responsability">
             <field name="code">O-23</field>
-            <field name="name">Agente de retención en el impuesto sobre las ventas</field>
+            <field name="name">Agente de retención IVA</field>
         </record>
 
         <record id="fiscal_responsability_O-32" model="dian.fiscal.responsability">
@@ -109,7 +109,7 @@
 
         <record id="fiscal_responsability_O-47" model="dian.fiscal.responsability">
             <field name="code">O-47</field>
-            <field name="name">Régimen Simple de Tributación – SIMPLE</field>
+            <field name="name">Régimen Simple de Tributación</field>
         </record>
 
         <record id="fiscal_responsability_O-48" model="dian.fiscal.responsability">
@@ -174,7 +174,7 @@
 
         <record id="fiscal_responsability_R-99-PN" model="dian.fiscal.responsability">
             <field name="code">R-99-PN</field>
-            <field name="name">No responsable PN</field>
+            <field name="name">No responsable</field>
         </record>
 
         <record id="fiscal_responsability_A-01" model="dian.fiscal.responsability">
