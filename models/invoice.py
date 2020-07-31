@@ -38,15 +38,6 @@ class AccountInvoice(models.Model):
     archivo_xml_invoice = fields.Binary('archivo DIAN xml de factura', readonly=True)
     xml_adjunto_ids = fields.Many2many('ir.attachment', string="Archivo adjunto xml de factura")
 
-    hide_button_dian = fields.Boolean(string="Ocultar", compute='_computeHidebuttonDian', default=False)
-
-    def _computeHidebuttonDian(self):
-        for x in self:
-            if x.journal_id:
-                if x.journal_id.sequence_id.use_dian_control:
-                    x.hide_button_dian = True
-                else:
-                    x.hide_button_dian = False
 
     @api.multi
     def write(self, vals):
@@ -141,7 +132,6 @@ class AccountInvoice(models.Model):
                 invoice_line_new = []  
                 invoice_tax_line_new = []
                 invoice_line_tax = []
-                #for invoice_line_tax in line_invoice.invoice_line_tax_ids:
                 for invoice_line_tax in line_invoice.invoice_line_tax_ids:
                     invoice_tax_line_new.append((0,0,{
                         'tax_id' : invoice_line_tax.id,
@@ -201,125 +191,112 @@ class AccountInvoice(models.Model):
     def action_invoice_open(self):
         mensaje = ''
         rec = super(AccountInvoice, self).action_invoice_open()
-        if self.journal_id.sequence_id.use_dian_control:
-            if self.type == 'out_invoice':
-                if self.is_debit_note:
-                    rec_sequence_nd = self.env['ir.sequence']
-                    sequence_code = self.journal_id.debit_note_sequence_id.code
-                    if sequence_code == False:
-                        raise ValidationError('Debe definir el código de secuencia de la nota de débito en Ajuste / Técnico / Secuencia')
-                    self.number = rec_sequence_nd.next_by_code(sequence_code)
-                    self.move_name = self.number  
-                # Verifica datos de la resolucion DIAN
-                if self.resolution_number == False:
-                    mensaje += '- La factura no tiene resolución DIAN asociada.' + '\n'
-                rec_resolution_invoice = self.journal_id.sequence_id.dian_resolution_ids.filtered(lambda r: r.active_resolution == True)
+        if self.type == 'out_invoice':
+            if self.is_debit_note:
+                rec_sequence_nd = self.env['ir.sequence']
+                self.number = rec_sequence_nd.next_by_code('nota_debito.sequence')
+                self.move_name = self.number  
+            # Verifica datos de la resolucion DIAN
+            if self.resolution_number == False:
+                mensaje += '- La factura no tiene resolución DIAN asociada.' + '\n'
+            rec_resolution_invoice = self.journal_id.sequence_id.dian_resolution_ids.filtered(lambda r: r.active_resolution == True)
 
-                if not rec_resolution_invoice:
-                    mensaje += '- La resolución DIAN asociada a la factura no existe.' + '\n'
-                if not rec_resolution_invoice.technical_key:
-                    mensaje += '- La resolución DIAN  no tiene asociada la clave técnica.' + '\n'
+            if not rec_resolution_invoice:
+                mensaje += '- La resolución DIAN asociada a la factura no existe.' + '\n'
+            if not rec_resolution_invoice.technical_key:
+                mensaje += '- La resolución DIAN  no tiene asociada la clave técnica.' + '\n'
 
-                if mensaje:
-                    mensaje += '- El diario seleccionado es '+ str((self.journal_id.name.encode('utf-8'))) +', verifique si es el correcto, este debe tener bien configurada la clave tecnica y el numero de resolucion que la DIAN le otorgo' + '\n'
+            if mensaje:
+                mensaje += '- El diario seleccionado es '+ str((self.journal_id.name.encode('utf-8'))) +', verifique si es el correcto, este debe tener bien configurada la clave tecnica y el numero de resolucion que la DIAN le otorgo' + '\n'
 
-                # Verifica datos de la compañia
-                company = self.company_id
-                partner = company.partner_id 
-                if not company.document_repository:
-                    mensaje += '- Se debe asociar un repositorio en donde se almacenarán los archivos de FE.' + '\n'
-                if not company.software_identification_code:
-                    mensaje += '- No se encuentra registrado el código de identificación del software.' + '\n'
-                if not company.password_environment:
-                    mensaje += '- No se encuentra registrado el password del ambiente.' + '\n'
-                if not partner.country_id.code:
-                    mensaje += '- Su empresa no tiene registrado el país.' + '\n'
-                if not partner.xidentification:
-                    mensaje += '- Su empresa no tiene registrado el NIT.' + '\n'
-                if not partner.company_type:
-                    mensaje += '- Su empresa no está identificada como persona juríduca o persona natural.' + '\n'
-                if not partner.doctype:
-                    mensaje += '- Su empresa no tiene asociada un tipo de documento.' + '\n'
-                if not partner.state_id:
-                    mensaje += '- Su empresa no tiene asociada un estado.' + '\n'
-                if not partner.tribute_id:
-                    mensaje += '- Su empresa no tiene asociada un tributo.' + '\n' 
-                if not partner.fiscal_responsability_ids:
-                    mensaje += '- Su empresa no tiene asociada una responsabilidad fiscal.' + '\n' 
-                if not company.operation_type:
-                    mensaje += '- Su empresa no tiene asociada un tipo de operación.' + '\n' 
-                if not partner.xcity:
-                    mensaje += '- Su empresa no tiene asociada un municipio.' + '\n'
-                if not partner.street:
-                    mensaje += '- Su empresa no tiene asocida una dirección.' + '\n'
-                if not company.trade_name:
-                    mensaje += '- Su empresa no tiene definida una razón social.' + '\n'
-                if not company.digital_certificate:
-                    mensaje += '- No se ha registrado el certificado digital.' + '\n'
-                if not company.certificate_key:
-                    mensaje += '- No se ha registrado la clave del certificado.' + '\n'
-                if not company.issuer_name:
-                    mensaje += '- No se ha registrado el proveedor del certificado.' + '\n'
-                if not company.serial_number:
-                    mensaje += '- No se ha registrado el serial del certificado.' + '\n'
-                # Verifica datos del cliente
-                if not self.currency_id.name:
-                    mensaje += '- El cliente no posee una moneda asociada.' + '\n'
-                if not self.partner_id.company_type:
-                    mensaje += '- No se ha definido si el cliente es una persona natural o juridica.' + '\n'
-                if not self.partner_id.xidentification:
-                    mensaje += '- El cliente no tiene registrado el NIT.' + '\n'
-                if not self.partner_id.doctype:
-                    mensaje += '- El cliente no tiene asociada un tipo de documento.' + '\n'
-                if not self.partner_id.fiscal_responsability_ids:
-                    mensaje += '- El cliente no tiene asociada una responsabilidad fiscal, para solucionarlo abra el cliente y busque asegure que el campo posicion fiscal tiene valor' + '\n'
-                if not self.partner_id.country_id.code:
-                    mensaje += '- El cliente no tiene asociada un país.' + '\n'
-                if not self.partner_id.state_id.name:
-                    mensaje += '- El cliente no tiene asociada un estado.' + '\n'
-                if not self.partner_id.city:
-                    mensaje += '- El cliente no tiene asociada una ciudad.' + '\n'
-                if not self.partner_id.xcity.name:
-                    mensaje += '- El cliente no tiene asociada un municipio.' + '\n'
-                if not self.partner_id.street:
-                    mensaje += '- El cliente no tiene asociada una dirección.' + '\n'
-                if not self.partner_id.tribute_id:
-                    mensaje += '- El cliente no tiene asociada un tributo de los indicados en la tabla 6.2.2 Tributos indicado en la tabla 6.2.2 Tributos, para solucionarlo abra el cliente y busque asegure que el campo tributos tiene valor' + '\n' 
-                if not self.partner_id.email:
-                    mensaje += '- El cliente no tiene definido un email.' + '\n'
-                # Verifica que existan asociados impuestos al grupo de impuestos IVA, ICA y ICO       
-                rec_account_invoice_tax = self.env['account.invoice.tax'].search([('invoice_id', '=', self.id)])
-                if rec_account_invoice_tax:
-                    for item_tax in rec_account_invoice_tax:
-                        if item_tax.tax_id.tax_group_fe not in ('iva_fe','ica_fe','ico_fe','ret_fe'):
-                            mensaje += '- La factura contiene impuestos que no están asociados al grupo de impuestos DIAN FE.' + '\n'
-                data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', self.id)])
-                if data_lines_doc:
-                    for data_line in data_lines_doc:
-                        for line_tax in data_line.invoice_line_tax_ids:        
-                            rec_tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
-                            if not rec_tax.tributes:
-                                mensaje += '- Algunos impueso indicados en la factura no tiene un tributo asociado según los tributos indicados en la tabla 6.2.2 Tributos.' + '\n'
-                if data_lines_doc:
-                    for data_line in data_lines_doc:
-                        count_line_taxt = 0
-                        for line_tax in data_line.invoice_line_tax_ids:        
-                            count_line_taxt += 1
-                        if count_line_taxt > 1:
-                            mensaje += '- Existen líneas de factura que poseen más de un impuesto asociado' + '\n'
-                # Verifica que no exista montos en negativo
-                if data_lines_doc:
-                    for data_line in data_lines_doc:
-                        if data_line.price_subtotal < 0.00:
-                            mensaje += '- Existen líneas de factura que poseen montos en negativo' + '\n'
-                        # for line_tax in data_line.invoice_line_tax_ids:        
-                        #     if line_tax.amount < 0.00:
-                        #         mensaje += '- Existen líneas con impuestos en negativo' + '\n'
-
-                if not self.payment_term_id:
-                    mensaje += '- La factura no tiene un término de pago definido' + '\n'
-                if mensaje:
-                    raise ValidationError(mensaje)
+            # Verifica datos de la compañia
+            company = self.company_id
+            partner = company.partner_id 
+            if not company.document_repository:
+                mensaje += '- Se debe asociar un repositorio en donde se almacenarán los archivos de FE.' + '\n'
+            if not company.software_identification_code:
+                mensaje += '- No se encuentra registrado el código de identificación del software.' + '\n'
+            if not company.password_environment:
+                mensaje += '- No se encuentra registrado el password del ambiente.' + '\n'
+            if not partner.country_id.code:
+                mensaje += '- Su empresa no tiene registrado el país.' + '\n'
+            if not partner.xidentification:
+                mensaje += '- Su empresa no tiene registrado el NIT.' + '\n'
+            if not partner.company_type:
+                mensaje += '- Su empresa no está identificada como persona juríduca o persona natural.' + '\n'
+            if not partner.doctype:
+                mensaje += '- Su empresa no tiene asociada un tipo de documento.' + '\n'
+            if not partner.state_id:
+                mensaje += '- Su empresa no tiene asociada un estado.' + '\n'
+            if not partner.tribute_id:
+                mensaje += '- Su empresa no tiene asociada un tributo.' + '\n' 
+            if not partner.fiscal_responsability_ids:
+                mensaje += '- Su empresa no tiene asociada una responsabilidad fiscal.' + '\n' 
+            if not company.operation_type:
+                mensaje += '- Su empresa no tiene asociada un tipo de operación.' + '\n' 
+            if not partner.xcity:
+                mensaje += '- Su empresa no tiene asociada un municipio.' + '\n'
+            if not partner.street:
+                mensaje += '- Su empresa no tiene asocida una dirección.' + '\n'
+            if not company.trade_name:
+                mensaje += '- Su empresa no tiene definida una razón social.' + '\n'
+            if not company.digital_certificate:
+                mensaje += '- No se ha registrado el certificado digital.' + '\n'
+            if not company.certificate_key:
+                mensaje += '- No se ha registrado la clave del certificado.' + '\n'
+            if not company.issuer_name:
+                mensaje += '- No se ha registrado el proveedor del certificado.' + '\n'
+            if not company.serial_number:
+                mensaje += '- No se ha registrado el serial del certificado.' + '\n'
+            # Verifica datos del cliente
+            if not self.currency_id.name:
+                mensaje += '- El cliente no posee una moneda asociada.' + '\n'
+            if not self.partner_id.company_type:
+                mensaje += '- No se ha definido si el cliente es una persona natural o juridica.' + '\n'
+            if not self.partner_id.xidentification:
+                mensaje += '- El cliente no tiene registrado el NIT.' + '\n'
+            if not self.partner_id.doctype:
+                mensaje += '- El cliente no tiene asociada un tipo de documento.' + '\n'
+            if not self.partner_id.fiscal_responsability_ids:
+                mensaje += '- El cliente no tiene asociada una responsabilidad fiscal, para solucionarlo abra el cliente y busque asegure que el campo posicion fiscal tiene valor' + '\n'
+            if not self.partner_id.country_id.code:
+                mensaje += '- El cliente no tiene asociada un país.' + '\n'
+            if not self.partner_id.state_id.name:
+                mensaje += '- El cliente no tiene asociada un estado.' + '\n'
+            if not self.partner_id.city:
+                mensaje += '- El cliente no tiene asociada una ciudad.' + '\n'
+            if not self.partner_id.xcity.name:
+                mensaje += '- El cliente no tiene asociada un municipio.' + '\n'
+            if not self.partner_id.street:
+                mensaje += '- El cliente no tiene asociada una dirección.' + '\n'
+            if not self.partner_id.tribute_id:
+                mensaje += '- El cliente no tiene asociada un tributo de los indicados en la tabla 6.2.2 Tributos indicado en la tabla 6.2.2 Tributos, para solucionarlo abra el cliente y busque asegure que el campo tributos tiene valor' + '\n' 
+            if not self.partner_id.email:
+                mensaje += '- El cliente no tiene definido un email.' + '\n'
+            # Verifica que existan asociados impuestos al grupo de impuestos IVA, ICA y ICO       
+            rec_account_invoice_tax = self.env['account.invoice.tax'].search([('invoice_id', '=', self.id)])
+            if rec_account_invoice_tax:
+                for item_tax in rec_account_invoice_tax:
+                    if item_tax.tax_id.tax_group_fe not in ('iva_fe','ica_fe','ico_fe','ret_fe'):
+                        mensaje += '- La factura contiene impuestos que no están asociados al grupo de impuestos DIAN FE.' + '\n'
+            data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', self.id)])
+            if data_lines_doc:
+                for data_line in data_lines_doc:
+                    for line_tax in data_line.invoice_line_tax_ids:        
+                        rec_tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
+                        if not rec_tax.tributes:
+                            mensaje += '- Algunos impueso indicados en la factura no tiene un tributo asociado según los tributos indicados en la tabla 6.2.2 Tributos.' + '\n'
+            if data_lines_doc:
+                for data_line in data_lines_doc:
+                    count_line_taxt = 0
+                    for line_tax in data_line.invoice_line_tax_ids:        
+                        count_line_taxt += 1
+                    if count_line_taxt > 1:
+                        mensaje += '- Existen líneas de factura que poseen más de un impuesto asociado' + '\n'
+            if not self.payment_term_id:
+                mensaje += '- La factura no tiene un término de pago definido' + '\n'
+            if mensaje:
+                raise ValidationError(mensaje)
 
 
     @api.multi

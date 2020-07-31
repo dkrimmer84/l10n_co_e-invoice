@@ -3,8 +3,6 @@ from odoo import api, fields, models, _, tools
 from datetime import datetime, timedelta, date
 from pytz import timezone
 from odoo.exceptions import UserError, ValidationError
-import logging
-_logger = logging.getLogger(__name__)
 
 try:
     import xmltodict
@@ -82,8 +80,8 @@ class Company(models.Model):
     certificate_key = fields.Char(string='Clave del certificado P12', required=True, default="")
     operation_type = fields.Selection([('01','Combustible'),('02','Emisor es Autoretenedor'),('03','Excluidos y Exentos'),
     ('04','Exportación'),('05','Generica'),('06','Generica con pago anticipado'),
-    ('07','Generica con periodo de facturacion'),('08','Consorcio'),('09','AIU'),('10','Estandar *'),
-    ('11','Mandatos'),('12','Mandatos Servicios')], string='Tipo de operación DIAN', required=True)
+    ('07','Generica con periodo de facturacion'),('08','Consorcio'),('09','Servicios AIU'),('10','Estandar'),
+    ('11','Mandatos bienes'),('12','Mandatos Servicios')], string='Tipo de operación DIAN', required=True)
     pem = fields.Char(string="Nombre del archivo PEM del certificado", required=True, default="")
     certificate = fields.Char(string="Nombre del archivo del certificado", required=True, default="")
     production = fields.Boolean(string='Pase a producción', default=False)
