@@ -443,9 +443,9 @@ class DianDocument(models.Model):
                 if data_constants_document['InvoiceTypeCode'] in ('01','04'):
                     # Genera líneas de detalle de los impuestos
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
                     # Genera líneas de detalle de las factura
-                    data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id)
+                    data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUFE
                     ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
                     CUFE = self._generate_cufe(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
@@ -465,9 +465,9 @@ class DianDocument(models.Model):
                 # Construye el documento XML para la nota de crédito sin firma
                 if data_constants_document['InvoiceTypeCode'] == '91':
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
                     # Detalle líneas de nota de crédito                
-                    data_credit_lines_xml = self._generate_credit_lines_data_xml(template_credit_line_data_xml, data_header_doc.id, data_constants_document)
+                    data_credit_lines_xml = self._generate_credit_lines_data_xml(template_credit_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUDE
                     ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
                     CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
@@ -487,9 +487,9 @@ class DianDocument(models.Model):
                 # Construye el documento XML para la nota de dédito sin firma
                 if data_constants_document['InvoiceTypeCode'] == '92':
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
                     # Detalle líneas de nota de crédito                
-                    data_debit_lines_xml = self._generate_debit_lines_data_xml(template_debit_line_data_xml, data_header_doc.id, data_constants_document)
+                    data_debit_lines_xml = self._generate_debit_lines_data_xml(template_debit_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUFE
                     ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
                     CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
@@ -509,9 +509,9 @@ class DianDocument(models.Model):
                 # Construye el documento XML para la factura de contingencia sin firma
                 if data_constants_document['InvoiceTypeCode'] == '03':
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs)
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
                     # Genera líneas de detalle de las factura
-                    data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id)
+                    data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUDE
                     ambiente = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']
                     CUFE = self._generate_cude(data_header_doc.id, data_constants_document['InvoiceID'], data_constants_document['IssueDateCufe'], 
@@ -923,6 +923,7 @@ class DianDocument(models.Model):
         dian_constants['SerialNumber'] = company.serial_number                                          # Serial del certificado
         dian_constants['TaxSchemeID'] = partner.tribute_id.code
         dian_constants['TaxSchemeName'] = partner.tribute_id.name
+        dian_constants['Currency'] = company.currency_id.id
         return dian_constants
 
 
@@ -970,6 +971,16 @@ class DianDocument(models.Model):
         data_constants_document['TaxSchemeName'] = data_header_doc.partner_id.tribute_id.name
         data_constants_document['DocumentCurrencyCode'] = data_header_doc.currency_id.name                                  # Divisa de la Factura
         data_constants_document['CustomerAdditionalAccountID'] = '1' if data_header_doc.partner_id.is_company else '2'
+        # ini Modificado 28JUL20 ver xmls modificados
+        if data_header_doc.partner_id.doctype == 31:
+            data_constants_document['IDAdquiriente'] = data_header_doc.partner_id.xidentification if data_header_doc.partner_id.xidentification else ''
+            data_constants_document['SchemeNameAdquiriente'] = data_header_doc.partner_id.doctype
+            data_constants_document['SchemeIDAdquiriente'] = data_header_doc.partner_id.dv 
+        else:
+            data_constants_document['IDAdquiriente'] = data_header_doc.partner_id.xidentification if data_header_doc.partner_id.xidentification else ''
+            data_constants_document['SchemeNameAdquiriente'] = data_header_doc.partner_id.doctype
+            data_constants_document['SchemeIDAdquiriente'] = ''
+        # fin Modificado 28JUL20
         data_constants_document['CustomerID'] = data_header_doc.partner_id.xidentification if data_header_doc.partner_id.xidentification else '' # Identificador fiscal: En Colombia, el NIT
         data_constants_document['CustomerSchemeID'] = data_header_doc.partner_id.doctype                                    # tipo de identificdor fiscal 
         data_constants_document['CustomerPartyName'] = self._replace_character_especial(data_header_doc.partner_id.name)                                      # Nombre Comercial
@@ -988,6 +999,15 @@ class DianDocument(models.Model):
         data_constants_document['CustomerElectronicMail'] = data_header_doc.partner_id.email
         data_constants_document['CustomerschemeID'] = data_header_doc.partner_id.dv                         # Digito verificador del NIT
         data_constants_document['Firstname'] = self._replace_character_especial(data_header_doc.partner_id.name)
+        data_constants_document['CurrencyID'] = data_header_doc.currency_id.name
+        # Obtener la tasa de cambio
+        if dian_constants['Currency'] == data_header_doc.currency_id.id:
+            data_constants_document['CalculationRate'] = 1.00
+        else:
+            data_constants_document['CalculationRate'] = self._get_rate_date(data_header_doc.company_id.id,data_header_doc.currency_id.id,data_header_doc.date_invoice)
+            data_constants_document['CalculationRate'] = self._complements_second_decimal_total(data_constants_document['CalculationRate'])
+        # Obtener la fecha de cambio
+        data_constants_document['DateRate'] = data_header_doc.date_invoice
         # Determina termino de pago 1 Contado 2 Crédito
         if not data_header_doc.payment_term_id.line_ids:
             data_constants_document['PaymentMeansID'] =  '1'  
@@ -1015,11 +1035,6 @@ class DianDocument(models.Model):
                     data_constants_document['InvoiceReferenceDate'] = invoice_cancel.date_invoice
         # Datos contingencia
         if data_constants_document['InvoiceTypeCode'] == ('03'):
-            #invoice_contingency = self.env['account.invoice'].search([('id', '=', data_header_doc.id),('type', '=', 'out_invoice'),('state_dian_document', '=', 'exitoso')])
-            #if invoice_contingency:
-            #13FEB dian_document_contingency = self.env['dian.document'].search([('state', '=', 'exitoso'),('document_type', '=', 'f'),('id', '=', data_header_doc.diancode_id.id)])
-            #13FEB if dian_document_contingency:
-                #13FEB data_constants_document['ContingencyReferenceID'] = dian_document_contingency.dian_code
             data_constants_document['ContingencyReferenceID'] = data_header_doc.contingency_invoice_number
             data_constants_document['ContingencyIssueDate'] = data_header_doc.date_invoice
             data_constants_document['ContingencyDocumentTypeCode'] = 'FTC'
@@ -1074,10 +1089,6 @@ class DianDocument(models.Model):
     #     # ica_03 = ica_03 if ica_03 >= 0.00 else ica_03 * -1
     #     # inc_04 = inc_04 if inc_04 >= 0.00 else inc_04 * -1
     #     TotalTaxInclusiveAmount = amount_untaxed + iva_01 + ica_03 + inc_04
-    #     # print('----------------------------------')
-    #     # print('TotalTaxInclusiveAmount ', TotalTaxInclusiveAmount)
-    #     # print('----------------------------------')
-    #     # print(aaaaaaaaaa)
     #     return TotalTaxInclusiveAmount
 
 
@@ -1188,6 +1199,9 @@ class DianDocument(models.Model):
    <cac:AccountingCustomerParty>
       <cbc:AdditionalAccountID>%(CustomerAdditionalAccountID)s</cbc:AdditionalAccountID>
       <cac:Party>
+         <cac:PartyIdentification>
+            <cbc:ID schemeName="%(SchemeNameAdquiriente)s" schemeID="%(SchemeIDAdquiriente)s">%(IDAdquiriente)s</cbc:ID>                        
+         </cac:PartyIdentification>
          <cac:PartyName>
             <cbc:Name>%(CustomerPartyName)s</cbc:Name>
          </cac:PartyName>
@@ -1245,16 +1259,211 @@ class DianDocument(models.Model):
       <cbc:PaymentMeansCode>%(PaymentMeansCode)s</cbc:PaymentMeansCode>
       <cbc:PaymentDueDate>%(PaymentDueDate)s</cbc:PaymentDueDate>
       <cbc:PaymentID>1234</cbc:PaymentID>      
-   </cac:PaymentMeans>%(data_taxs_xml)s
+   </cac:PaymentMeans>
+   <cac:PaymentExchangeRate>
+      <cbc:SourceCurrencyCode>%(CurrencyID)s</cbc:SourceCurrencyCode>
+      <cbc:SourceCurrencyBaseRate>1.00</cbc:SourceCurrencyBaseRate>
+      <cbc:TargetCurrencyCode>COP</cbc:TargetCurrencyCode>
+      <cbc:TargetCurrencyBaseRate>1.00</cbc:TargetCurrencyBaseRate>
+      <cbc:CalculationRate>%(CalculationRate)s</cbc:CalculationRate>
+      <cbc:Date>%(DateRate)s</cbc:Date>
+   </cac:PaymentExchangeRate>%(data_taxs_xml)s
    <cac:LegalMonetaryTotal>
-      <cbc:LineExtensionAmount currencyID="COP">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
-      <cbc:TaxExclusiveAmount currencyID="COP">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
-      <cbc:TaxInclusiveAmount currencyID="COP">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
-      <cbc:PayableAmount currencyID="COP">%(PayableAmount)s</cbc:PayableAmount>
+      <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
+      <cbc:TaxExclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
+      <cbc:TaxInclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
+      <cbc:PayableAmount currencyID="%(CurrencyID)s">%(PayableAmount)s</cbc:PayableAmount>
    </cac:LegalMonetaryTotal>%(data_lines_xml)s
 </Invoice>
 """
         return template_basic_data_fe_xml
+
+
+    def _template_basic_data_fe_exportacion_xml(self):
+        template_basic_data_fe_exportacion_xml = """
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2    http://docs.oasis-open.org/ubl/os-UBL-2.1/xsd/maindoc/UBL-Invoice-2.1.xsd">
+    <ext:UBLExtensions>
+        <ext:UBLExtension>
+            <ext:ExtensionContent>
+                <sts:DianExtensions>
+                    <sts:InvoiceControl>
+                        <sts:InvoiceAuthorization>%(InvoiceAuthorization)s</sts:InvoiceAuthorization>
+                        <sts:AuthorizationPeriod>
+                            <cbc:StartDate>%(StartDate)s</cbc:StartDate>
+                            <cbc:EndDate>%(EndDate)s</cbc:EndDate>
+                        </sts:AuthorizationPeriod>
+                        <sts:AuthorizedInvoices>
+                            <sts:Prefix>%(Prefix)s</sts:Prefix>
+                            <sts:From>%(From)s</sts:From>
+                            <sts:To>%(To)s</sts:To>
+                        </sts:AuthorizedInvoices>
+                    </sts:InvoiceControl>
+                    <sts:InvoiceSource>
+                        <cbc:IdentificationCode listAgencyID="6" listAgencyName="United Nations Economic Commission for Europe" listSchemeURI="urn:oasis:names:specification:ubl:codelist:gc:CountryIdentificationCode-2.1">%(IdentificationCode)s</cbc:IdentificationCode>
+                    </sts:InvoiceSource>
+                    <sts:SoftwareProvider>
+                        <sts:ProviderID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(schemeID)s" schemeName="31">%(ProviderID)s</sts:ProviderID>
+                        <sts:SoftwareID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)">%(SoftwareID)s</sts:SoftwareID>
+                    </sts:SoftwareProvider>
+                    <sts:SoftwareSecurityCode schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)">%(SoftwareSecurityCode)s</sts:SoftwareSecurityCode>
+                    <sts:AuthorizationProvider>
+                        <sts:AuthorizationProviderID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="4" schemeName="31">800197268</sts:AuthorizationProviderID>
+                    </sts:AuthorizationProvider>
+                    <sts:QRCode>URL=https://catalogo-vpfe-hab.dian.gov.co/document/searchqr?documentKey=%(UUID)s</sts:QRCode>
+                </sts:DianExtensions>
+            </ext:ExtensionContent>
+        </ext:UBLExtension>   
+        <ext:UBLExtension>
+            <ext:ExtensionContent></ext:ExtensionContent>
+        </ext:UBLExtension>
+    </ext:UBLExtensions>
+   <cbc:UBLVersionID>%(UBLVersionID)s</cbc:UBLVersionID>
+   <cbc:CustomizationID>%(CustomizationID)s</cbc:CustomizationID>
+   <cbc:ProfileID>%(ProfileID)s</cbc:ProfileID>
+   <cbc:ProfileExecutionID>%(ProfileExecutionID)s</cbc:ProfileExecutionID>
+   <cbc:ID>%(InvoiceID)s</cbc:ID>
+   <cbc:UUID schemeID="%(ProfileExecutionID)s" schemeName="CUFE-SHA384">%(UUID)s</cbc:UUID>
+   <cbc:IssueDate>%(IssueDate)s</cbc:IssueDate>
+   <cbc:IssueTime>%(IssueTime)s</cbc:IssueTime>
+   <cbc:InvoiceTypeCode>%(InvoiceTypeCode)s</cbc:InvoiceTypeCode>
+   <cbc:DocumentCurrencyCode>%(DocumentCurrencyCode)s</cbc:DocumentCurrencyCode>
+   <cbc:LineCountNumeric>%(LineCountNumeric)s</cbc:LineCountNumeric>
+   <cac:AccountingSupplierParty>
+      <cbc:AdditionalAccountID>%(SupplierAdditionalAccountID)s</cbc:AdditionalAccountID>
+      <cac:Party>
+         <cac:PartyName>
+            <cbc:Name>%(SupplierPartyName)s</cbc:Name>
+         </cac:PartyName>
+         <cac:PhysicalLocation>
+            <cac:Address>
+               <cbc:ID>%(SupplierCityCode)s</cbc:ID>
+               <cbc:CityName>%(SupplierCityName)s</cbc:CityName>
+               <cbc:CountrySubentity>%(SupplierCountrySubentity)s</cbc:CountrySubentity>
+               <cbc:CountrySubentityCode>%(SupplierCountrySubentityCode)s</cbc:CountrySubentityCode>
+               <cac:AddressLine>
+                  <cbc:Line>%(SupplierLine)s</cbc:Line>
+               </cac:AddressLine>
+               <cac:Country>
+                  <cbc:IdentificationCode>%(SupplierCountryCode)s</cbc:IdentificationCode>
+                  <cbc:Name languageID="es">%(SupplierCountryName)s</cbc:Name>
+               </cac:Country>
+            </cac:Address>
+         </cac:PhysicalLocation>
+         <cac:PartyTaxScheme>
+            <cbc:RegistrationName>%(SupplierPartyName)s</cbc:RegistrationName>
+            <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(schemeID)s" schemeName="31">%(ProviderID)s</cbc:CompanyID>
+            <cbc:TaxLevelCode listName="48">%(SupplierTaxLevelCode)s</cbc:TaxLevelCode>
+            <cac:RegistrationAddress>
+               <cbc:ID>%(SupplierCityCode)s</cbc:ID>
+               <cbc:CityName>%(SupplierCityName)s</cbc:CityName>
+               <cbc:CountrySubentity>%(SupplierCountrySubentity)s</cbc:CountrySubentity>
+               <cbc:CountrySubentityCode>%(SupplierCountrySubentityCode)s</cbc:CountrySubentityCode>
+               <cac:AddressLine>
+                  <cbc:Line>%(SupplierLine)s</cbc:Line>
+               </cac:AddressLine>
+               <cac:Country>
+                  <cbc:IdentificationCode>%(SupplierCountryCode)s</cbc:IdentificationCode>
+                  <cbc:Name languageID="es">%(SupplierCountryName)s</cbc:Name>
+               </cac:Country>
+            </cac:RegistrationAddress>
+            <cac:TaxScheme>
+               <cbc:ID>%(TaxSchemeID)s</cbc:ID>
+               <cbc:Name>%(TaxSchemeName)s</cbc:Name>
+            </cac:TaxScheme>
+         </cac:PartyTaxScheme>
+         <cac:PartyLegalEntity>
+            <cbc:RegistrationName>%(SupplierPartyName)s</cbc:RegistrationName>
+            <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(schemeID)s" schemeName="31">%(ProviderID)s</cbc:CompanyID>
+            <cac:CorporateRegistrationScheme>
+               <cbc:ID>%(Prefix)s</cbc:ID>
+            </cac:CorporateRegistrationScheme>
+         </cac:PartyLegalEntity>
+         <cac:Contact>
+           <cbc:ElectronicMail>%(SupplierElectronicMail)s</cbc:ElectronicMail>
+         </cac:Contact>   
+      </cac:Party>
+   </cac:AccountingSupplierParty>
+   <cac:AccountingCustomerParty>
+      <cbc:AdditionalAccountID>%(CustomerAdditionalAccountID)s</cbc:AdditionalAccountID>
+      <cac:Party>
+         <cac:PartyIdentification>
+            <cbc:ID schemeName="%(SchemeNameAdquiriente)s" schemeID="%(SchemeIDAdquiriente)s">%(IDAdquiriente)s</cbc:ID>                        
+         </cac:PartyIdentification>
+         <cac:PartyName>
+            <cbc:Name>%(CustomerPartyName)s</cbc:Name>
+         </cac:PartyName>
+         <cac:PhysicalLocation>
+            <cac:Address>
+               <cbc:ID>%(CustomerCityCode)s</cbc:ID>
+               <cbc:CityName>%(CustomerCityName)s</cbc:CityName>
+               <cbc:CountrySubentity>%(CustomerCountrySubentity)s</cbc:CountrySubentity>
+               <cbc:CountrySubentityCode>%(CustomerCountrySubentityCode)s</cbc:CountrySubentityCode>
+               <cac:AddressLine>
+                  <cbc:Line>%(CustomerLine)s</cbc:Line>
+               </cac:AddressLine>
+               <cac:Country>
+                  <cbc:IdentificationCode>%(CustomerCountryCode)s</cbc:IdentificationCode>
+                  <cbc:Name languageID="es">%(CustomerCountryName)s</cbc:Name>
+               </cac:Country>
+            </cac:Address>
+         </cac:PhysicalLocation>
+         <cac:PartyTaxScheme>
+            <cbc:RegistrationName>%(CustomerPartyName)s</cbc:RegistrationName>
+            <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(CustomerschemeID)s" schemeName="31">%(CustomerID)s</cbc:CompanyID>
+            <cbc:TaxLevelCode listName="48">%(CustomerTaxLevelCode)s</cbc:TaxLevelCode>
+            <cac:RegistrationAddress>
+               <cbc:ID>%(CustomerCityCode)s</cbc:ID>
+               <cbc:CityName>%(CustomerCityName)s</cbc:CityName>
+               <cbc:CountrySubentity>%(CustomerCountrySubentity)s</cbc:CountrySubentity>
+               <cbc:CountrySubentityCode>%(CustomerCountrySubentityCode)s</cbc:CountrySubentityCode>
+               <cac:AddressLine>
+                  <cbc:Line>%(CustomerLine)s</cbc:Line>
+               </cac:AddressLine>
+               <cac:Country>
+                  <cbc:IdentificationCode>%(CustomerCountryCode)s</cbc:IdentificationCode>
+                  <cbc:Name languageID="es">%(CustomerCountryName)s</cbc:Name>
+               </cac:Country>
+            </cac:RegistrationAddress>
+            <cac:TaxScheme>
+               <cbc:ID>%(TaxSchemeID)s</cbc:ID>
+               <cbc:Name>%(TaxSchemeName)s</cbc:Name>
+            </cac:TaxScheme>
+         </cac:PartyTaxScheme>
+         <cac:PartyLegalEntity>
+            <cbc:RegistrationName>%(CustomerPartyName)s</cbc:RegistrationName>
+            <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%(CustomerschemeID)s" schemeName="31">%(CustomerID)s</cbc:CompanyID>
+        </cac:PartyLegalEntity>
+        <cac:Contact>
+           <cbc:ElectronicMail>%(CustomerElectronicMail)s</cbc:ElectronicMail>
+        </cac:Contact>
+        <cac:Person>
+           <cbc:FirstName>%(Firstname)s</cbc:FirstName>
+        </cac:Person>
+      </cac:Party>
+   </cac:AccountingCustomerParty>
+   <cac:PaymentMeans>
+      <cbc:ID>%(PaymentMeansID)s</cbc:ID>
+      <cbc:PaymentMeansCode>%(PaymentMeansCode)s</cbc:PaymentMeansCode>
+      <cbc:PaymentDueDate>%(PaymentDueDate)s</cbc:PaymentDueDate>
+      <cbc:PaymentID>1234</cbc:PaymentID>      
+   </cac:PaymentMeans>
+   <cac:PaymentExchangeRate>
+      <cbc:SourceCurrencyCode>%(CurrencyID)s</cbc:SourceCurrencyCode>
+      <cbc:SourceCurrencyBaseRate>1.00</cbc:SourceCurrencyBaseRate>
+      <cbc:TargetCurrencyCode>COP</cbc:TargetCurrencyCode>
+      <cbc:TargetCurrencyBaseRate>1.00</cbc:TargetCurrencyBaseRate>
+      <cbc:CalculationRate>%(CalculationRate)s</cbc:CalculationRate>
+      <cbc:Date>%(DateRate)s</cbc:Date>
+   </cac:PaymentExchangeRate>%(data_taxs_xml)s
+   <cac:LegalMonetaryTotal>
+      <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
+      <cbc:TaxExclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
+      <cbc:TaxInclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
+      <cbc:PayableAmount currencyID="%(CurrencyID)s">%(PayableAmount)s</cbc:PayableAmount>
+   </cac:LegalMonetaryTotal>%(data_lines_xml)s
+</Invoice>
+"""
+        return template_basic_data_fe_exportacion_xml
 
 
     def _generate_data_fe_document_xml(self, template_basic_data_fe_xml, dc, dcd, data_taxs_xml, data_lines_xml, CUFE, data_xml_signature):
@@ -1316,7 +1525,13 @@ class DianDocument(models.Model):
             'TotalTaxExclusiveAmount' : dcd['TaxExclusiveAmount'],
             'TotalTaxInclusiveAmount' : dcd['TotalTaxInclusiveAmount'],
             'PayableAmount' : dcd['PayableAmount'], 
-            'data_lines_xml' : data_lines_xml
+            'data_lines_xml' : data_lines_xml,
+            'CurrencyID' : dcd['CurrencyID'],
+            'CalculationRate' : dcd['CalculationRate'],
+            'DateRate' : dcd['DateRate'],
+            'SchemeIDAdquiriente' : dcd['SchemeIDAdquiriente'],
+            'SchemeNameAdquiriente' : dcd['SchemeNameAdquiriente'],
+            'IDAdquiriente' : dcd['IDAdquiriente']
             }
         return template_basic_data_fe_xml
 
@@ -1433,6 +1648,9 @@ class DianDocument(models.Model):
    <cac:AccountingCustomerParty>
       <cbc:AdditionalAccountID>%(CustomerAdditionalAccountID)s</cbc:AdditionalAccountID>
       <cac:Party>
+         <cac:PartyIdentification>
+            <cbc:ID schemeName="%(SchemeNameAdquiriente)s" schemeID="%(SchemeIDAdquiriente)s">%(IDAdquiriente)s</cbc:ID>                        
+         </cac:PartyIdentification>
          <cac:PartyName>
             <cbc:Name>%(CustomerPartyName)s</cbc:Name>
          </cac:PartyName>
@@ -1492,10 +1710,10 @@ class DianDocument(models.Model):
       <cbc:PaymentID>1234</cbc:PaymentID>      
    </cac:PaymentMeans>%(data_taxs_xml)s
    <cac:LegalMonetaryTotal>
-      <cbc:LineExtensionAmount currencyID="COP">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
-      <cbc:TaxExclusiveAmount currencyID="COP">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
-      <cbc:TaxInclusiveAmount currencyID="COP">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
-      <cbc:PayableAmount currencyID="COP">%(PayableAmount)s</cbc:PayableAmount>
+      <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
+      <cbc:TaxExclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
+      <cbc:TaxInclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
+      <cbc:PayableAmount currencyID="%(CurrencyID)s">%(PayableAmount)s</cbc:PayableAmount>
    </cac:LegalMonetaryTotal>%(data_lines_xml)s
 </Invoice>
 """
@@ -1564,7 +1782,11 @@ class DianDocument(models.Model):
             'data_lines_xml' : data_lines_xml,
             'ContingencyReferenceID' : dcd['ContingencyReferenceID'],  
             'ContingencyDocumentTypeCode' : dcd['ContingencyDocumentTypeCode'],
-            'ContingencyIssueDate' : dcd['ContingencyIssueDate']
+            'ContingencyIssueDate' : dcd['ContingencyIssueDate'],
+            'CurrencyID' : dcd['CurrencyID'],
+            'SchemeIDAdquiriente' : dcd['SchemeIDAdquiriente'],
+            'SchemeNameAdquiriente' : dcd['SchemeNameAdquiriente'],
+            'IDAdquiriente' : dcd['IDAdquiriente']
             }
         return template_basic_data_contingencia_xml
 
@@ -1671,6 +1893,9 @@ class DianDocument(models.Model):
     <cac:AccountingCustomerParty>
        <cbc:AdditionalAccountID>%(CustomerAdditionalAccountID)s</cbc:AdditionalAccountID>
        <cac:Party>
+          <cac:PartyIdentification>
+             <cbc:ID schemeName="%(SchemeNameAdquiriente)s" schemeID="%(SchemeIDAdquiriente)s">%(IDAdquiriente)s</cbc:ID>                        
+          </cac:PartyIdentification>
           <cac:PartyName>
              <cbc:Name>%(CustomerPartyName)s</cbc:Name>
           </cac:PartyName>
@@ -1730,10 +1955,10 @@ class DianDocument(models.Model):
        <cbc:PaymentID>1234</cbc:PaymentID>      
     </cac:PaymentMeans>%(data_taxs_xml)s
     <cac:LegalMonetaryTotal>
-       <cbc:LineExtensionAmount currencyID="COP">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
-       <cbc:TaxExclusiveAmount currencyID="COP">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
-       <cbc:TaxInclusiveAmount currencyID="COP">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
-       <cbc:PayableAmount currencyID="COP">%(PayableAmount)s</cbc:PayableAmount>
+       <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
+       <cbc:TaxExclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
+       <cbc:TaxInclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
+       <cbc:PayableAmount currencyID="%(CurrencyID)s">%(PayableAmount)s</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>%(data_credit_lines_xml)s
 </CreditNote>"""
         return template_basic_data_nc_xml
@@ -1802,7 +2027,10 @@ class DianDocument(models.Model):
             'InvoiceReferenceDate' : dcd['InvoiceReferenceDate'],
             'data_taxs_xml' : data_taxs_xml,
             'data_credit_lines_xml' : data_credit_lines_xml,
-            }
+            'CurrencyID' : dcd['CurrencyID'],
+            'SchemeIDAdquiriente' : dcd['SchemeIDAdquiriente'],
+            'SchemeNameAdquiriente' : dcd['SchemeNameAdquiriente'],
+            'IDAdquiriente' : dcd['IDAdquiriente']            }
         return template_basic_data_nc_xml
 
  
@@ -1907,6 +2135,9 @@ class DianDocument(models.Model):
     <cac:AccountingCustomerParty>
        <cbc:AdditionalAccountID>%(CustomerAdditionalAccountID)s</cbc:AdditionalAccountID>
        <cac:Party>
+          <cac:PartyIdentification>
+             <cbc:ID schemeName="%(SchemeNameAdquiriente)s" schemeID="%(SchemeIDAdquiriente)s">%(IDAdquiriente)s</cbc:ID>                        
+          </cac:PartyIdentification>
           <cac:PartyName>
              <cbc:Name>%(CustomerPartyName)s</cbc:Name>
           </cac:PartyName>
@@ -1966,10 +2197,10 @@ class DianDocument(models.Model):
        <cbc:PaymentID>1234</cbc:PaymentID>      
     </cac:PaymentMeans>%(data_taxs_xml)s
     <cac:RequestedMonetaryTotal>
-       <cbc:LineExtensionAmount currencyID="COP">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
-       <cbc:TaxExclusiveAmount currencyID="COP">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
-       <cbc:TaxInclusiveAmount currencyID="COP">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
-       <cbc:PayableAmount currencyID="COP">%(PayableAmount)s</cbc:PayableAmount>
+       <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
+       <cbc:TaxExclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
+       <cbc:TaxInclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
+       <cbc:PayableAmount currencyID="%(CurrencyID)s">%(PayableAmount)s</cbc:PayableAmount>
     </cac:RequestedMonetaryTotal>%(data_debit_lines_xml)s
 </DebitNote>"""
         return template_basic_data_nd_xml
@@ -2037,7 +2268,11 @@ class DianDocument(models.Model):
             'InvoiceReferenceUUID' : dcd['InvoiceReferenceUUID'],
             'InvoiceReferenceDate' : dcd['InvoiceReferenceDate'],
             'data_taxs_xml' : data_taxs_xml,
-            'data_debit_lines_xml' : data_debit_lines_xml
+            'data_debit_lines_xml' : data_debit_lines_xml,
+            'CurrencyID' : dcd['CurrencyID'],
+            'SchemeIDAdquiriente' : dcd['SchemeIDAdquiriente'],
+            'SchemeNameAdquiriente' : dcd['SchemeNameAdquiriente'],
+            'IDAdquiriente' : dcd['IDAdquiriente']
             }
         return template_basic_data_nd_xml
 
@@ -2045,10 +2280,10 @@ class DianDocument(models.Model):
     def _template_tax_data_xml(self):
         template_tax_data_xml = """
     <cac:TaxTotal>
-        <cbc:TaxAmount currencyID="COP">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
+        <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
         <cac:TaxSubtotal>
-            <cbc:TaxableAmount currencyID="COP">%(TaxTotalTaxableAmount)s</cbc:TaxableAmount>
-            <cbc:TaxAmount currencyID="COP">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
+            <cbc:TaxableAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxableAmount)s</cbc:TaxableAmount>
+            <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
             <cac:TaxCategory>
                 <cbc:Percent>%(TaxTotalPercent)s</cbc:Percent>
                 <cac:TaxScheme>
@@ -2078,17 +2313,17 @@ class DianDocument(models.Model):
     <cac:InvoiceLine>
         <cbc:ID>%(ILLinea)s</cbc:ID>
         <cbc:InvoicedQuantity unitCode="EA">%(ILInvoicedQuantity)s</cbc:InvoicedQuantity>
-        <cbc:LineExtensionAmount currencyID="COP">%(ILLineExtensionAmount)s</cbc:LineExtensionAmount>
+        <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(ILLineExtensionAmount)s</cbc:LineExtensionAmount>
         <cbc:FreeOfChargeIndicator>false</cbc:FreeOfChargeIndicator>
         <cac:TaxTotal>
-           <cbc:TaxAmount currencyID="COP">%(ILTaxAmount)s</cbc:TaxAmount>%(InvoiceLineTaxSubtotal)s
+           <cbc:TaxAmount currencyID="%(CurrencyID)s">%(ILTaxAmount)s</cbc:TaxAmount>%(InvoiceLineTaxSubtotal)s
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Description>%(ILDescription)s</cbc:Description>
             %(InformationContentProviderParty)s
         </cac:Item>
         <cac:Price>
-            <cbc:PriceAmount currencyID="COP">%(ILPriceAmount)s</cbc:PriceAmount>
+            <cbc:PriceAmount currencyID="%(CurrencyID)s">%(ILPriceAmount)s</cbc:PriceAmount>
             <cbc:BaseQuantity unitCode="NIU">1.000000</cbc:BaseQuantity>
         </cac:Price>
     </cac:InvoiceLine>""" 
@@ -2098,8 +2333,8 @@ class DianDocument(models.Model):
     def _template_InvoiceLineTaxSubtotal_xml(self):
         template_InvoiceLineTaxSubtotal_xml = """
            <cac:TaxSubtotal>
-              <cbc:TaxableAmount currencyID="COP">%(ILTaxableAmount)s</cbc:TaxableAmount>
-              <cbc:TaxAmount currencyID="COP">%(ILTaxAmountSubtotal)s</cbc:TaxAmount>
+              <cbc:TaxableAmount currencyID="%(CurrencyID)s">%(ILTaxableAmount)s</cbc:TaxableAmount>
+              <cbc:TaxAmount currencyID="%(CurrencyID)s">%(ILTaxAmountSubtotal)s</cbc:TaxAmount>
               <cac:TaxCategory>
                  <cbc:Percent>%(ILPercent)s</cbc:Percent>
                  <cac:TaxScheme>
@@ -2116,13 +2351,13 @@ class DianDocument(models.Model):
     <cac:CreditNoteLine>
         <cbc:ID>%(ILLinea)s</cbc:ID>
         <cbc:CreditedQuantity unitCode="EA">%(ILInvoicedQuantity)s</cbc:CreditedQuantity>
-        <cbc:LineExtensionAmount currencyID="COP">%(ILLineExtensionAmount)s</cbc:LineExtensionAmount>
+        <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(ILLineExtensionAmount)s</cbc:LineExtensionAmount>
         <cbc:FreeOfChargeIndicator>false</cbc:FreeOfChargeIndicator>
         <cac:TaxTotal>
-           <cbc:TaxAmount currencyID="COP">%(ILTaxAmount)s</cbc:TaxAmount>
+           <cbc:TaxAmount currencyID="%(CurrencyID)s">%(ILTaxAmount)s</cbc:TaxAmount>
            <cac:TaxSubtotal>
-              <cbc:TaxableAmount currencyID="COP">%(ILTaxableAmount)s</cbc:TaxableAmount>
-              <cbc:TaxAmount currencyID="COP">%(ILTaxAmount)s</cbc:TaxAmount>
+              <cbc:TaxableAmount currencyID="%(CurrencyID)s">%(ILTaxableAmount)s</cbc:TaxableAmount>
+              <cbc:TaxAmount currencyID="%(CurrencyID)s">%(ILTaxAmount)s</cbc:TaxAmount>
               <cac:TaxCategory>
                  <cbc:Percent>%(ILPercent)s</cbc:Percent>
                  <cac:TaxScheme>
@@ -2137,7 +2372,7 @@ class DianDocument(models.Model):
             %(InformationContentProviderParty)s
         </cac:Item>
         <cac:Price>
-            <cbc:PriceAmount currencyID="COP">%(ILPriceAmount)s</cbc:PriceAmount>
+            <cbc:PriceAmount currencyID="%(CurrencyID)s">%(ILPriceAmount)s</cbc:PriceAmount>
             <cbc:BaseQuantity unitCode="NIU">1.000000</cbc:BaseQuantity>
         </cac:Price>
     </cac:CreditNoteLine>""" 
@@ -2149,12 +2384,12 @@ class DianDocument(models.Model):
     <cac:DebitNoteLine>
         <cbc:ID>%(ILLinea)s</cbc:ID>
         <cbc:DebitedQuantity unitCode="EA">%(ILInvoicedQuantity)s</cbc:DebitedQuantity>
-        <cbc:LineExtensionAmount currencyID="COP">%(ILLineExtensionAmount)s</cbc:LineExtensionAmount>
+        <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(ILLineExtensionAmount)s</cbc:LineExtensionAmount>
         <cac:TaxTotal>
-           <cbc:TaxAmount currencyID="COP">%(ILTaxAmount)s</cbc:TaxAmount>
+           <cbc:TaxAmount currencyID="%(CurrencyID)s">%(ILTaxAmount)s</cbc:TaxAmount>
            <cac:TaxSubtotal>
-              <cbc:TaxableAmount currencyID="COP">%(ILTaxableAmount)s</cbc:TaxableAmount>
-              <cbc:TaxAmount currencyID="COP">%(ILTaxAmount)s</cbc:TaxAmount>
+              <cbc:TaxableAmount currencyID="%(CurrencyID)s">%(ILTaxableAmount)s</cbc:TaxableAmount>
+              <cbc:TaxAmount currencyID="%(CurrencyID)s">%(ILTaxAmount)s</cbc:TaxAmount>
               <cac:TaxCategory>
                  <cbc:Percent>%(ILPercent)s</cbc:Percent>
                  <cac:TaxScheme>
@@ -2169,7 +2404,7 @@ class DianDocument(models.Model):
             %(InformationContentProviderParty)s
         </cac:Item>
         <cac:Price>
-            <cbc:PriceAmount currencyID="COP">%(ILPriceAmount)s</cbc:PriceAmount>
+            <cbc:PriceAmount currencyID="%(CurrencyID)s">%(ILPriceAmount)s</cbc:PriceAmount>
             <cbc:BaseQuantity unitCode="NIU">1.000000</cbc:BaseQuantity>
         </cac:Price>
     </cac:DebitNoteLine>""" 
@@ -2323,7 +2558,7 @@ class DianDocument(models.Model):
 
 
     @api.model
-    def _generate_taxs_data_xml(self, template_tax_data_xml, data_taxs):
+    def _generate_taxs_data_xml(self, template_tax_data_xml, data_taxs, CurrencyID):
         data_tax_xml = ''
         # iva_01
         if data_taxs['iva_01'] != '0.00':
@@ -2339,6 +2574,7 @@ class DianDocument(models.Model):
                                                     'TaxTotalPercent' : TaxTotalPercent,
                                                     'TaxTotalName' : TaxTotalName,
                                                     'TaxTotalTaxSchemeID' : TaxTotalTaxSchemeID,
+                                                    'CurrencyID' : CurrencyID
                                                     }
 
         # ica_03
@@ -2355,6 +2591,7 @@ class DianDocument(models.Model):
                                                     'TaxTotalPercent' : TaxTotalPercent,
                                                     'TaxTotalName' : TaxTotalName,
                                                     'TaxTotalTaxSchemeID' : TaxTotalTaxSchemeID,
+                                                    'CurrencyID' : CurrencyID
                                                     }
         
         # inc_04
@@ -2371,11 +2608,12 @@ class DianDocument(models.Model):
                                                     'TaxTotalPercent' : TaxTotalPercent,
                                                     'TaxTotalName' : TaxTotalName,
                                                     'TaxTotalTaxSchemeID' : TaxTotalTaxSchemeID,
+                                                    'CurrencyID' : CurrencyID
                                                     }
         return data_tax_xml
 
 
-    def _generate_lines_data_xml(self, template_line_data_xml, invoice_id):
+    def _generate_lines_data_xml(self, template_line_data_xml, invoice_id, CurrencyID):
         ILLinea = 0
         data_line_xml = ''
         InvoiceLineTaxSubtotal_xml = ''
@@ -2412,7 +2650,8 @@ class DianDocument(models.Model):
                                                             'ILTaxableAmount' : ILTaxableAmount,
                                                             'ILPercent' : ILPercent,
                                                             'ILID' : ILID,
-                                                            'ILName' : ILName,                                                        
+                                                            'ILName' : ILName,
+                                                            'CurrencyID' : CurrencyID                                                        
                                                             } 
                     # Nuevo fin 
                 ILTaxAmount = self._complements_second_decimal_total(ILTaxAmount)
@@ -2437,12 +2676,13 @@ class DianDocument(models.Model):
                                                         'ILChargeIndicator' : ILChargeIndicator,
                                                         'ILTaxAmount' : ILTaxAmount,
                                                         'InvoiceLineTaxSubtotal' : InvoiceLineTaxSubtotal_xml,
-                                                        'InformationContentProviderParty' : InformationContentProviderParty                                                       
+                                                        'InformationContentProviderParty' : InformationContentProviderParty,
+                                                        'CurrencyID' : CurrencyID                                                       
                                                         }
         return data_line_xml
 
 
-    def _generate_credit_lines_data_xml(self , template_credit_line_data_xml, invoice_id, dcd):
+    def _generate_credit_lines_data_xml(self , template_credit_line_data_xml, invoice_id, CurrencyID):
         ILLinea = 0
         data_credit_note_line_xml = ''
         data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
@@ -2497,12 +2737,13 @@ class DianDocument(models.Model):
                                                     'ILPercent' : ILPercent,
                                                     'ILID' : ILID,
                                                     'ILName' : ILName,
-                                                    'InformationContentProviderParty' : InformationContentProviderParty
+                                                    'InformationContentProviderParty' : InformationContentProviderParty,
+                                                    'CurrencyID' : CurrencyID
                                                     }
         return data_credit_note_line_xml
 
 
-    def _generate_debit_lines_data_xml(self , template_debit_line_data_xml, invoice_id, dcd):
+    def _generate_debit_lines_data_xml(self , template_debit_line_data_xml, invoice_id,  CurrencyID):
         ILLinea = 0
         data_debit_note_line_xml = ''
         data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
@@ -2556,7 +2797,8 @@ class DianDocument(models.Model):
                                                     'ILPercent' : ILPercent,
                                                     'ILID' : ILID,
                                                     'ILName' : ILName,
-                                                    'InformationContentProviderParty' : InformationContentProviderParty                                                    
+                                                    'InformationContentProviderParty' : InformationContentProviderParty,
+                                                    'CurrencyID' : CurrencyID                                                    
                                                     }
 
 
@@ -2721,7 +2963,7 @@ class DianDocument(models.Model):
 
 
     @api.model
-    def _get_doctype(self, doctype, is_debit_note, in_contingency_4):        
+    def _get_doctype(self, doctype, is_debit_note, in_contingency_4):  
         if doctype == 'out_invoice' and is_debit_note == False: # Es una factura
             if self.contingency_3 == False and self.contingency_4 == False  and in_contingency_4 == False:
                 docdian = '01'
@@ -3482,3 +3724,33 @@ class DianDocument(models.Model):
                 if time_difference.days > 3:
                     rec_dian_document.date_email_acknowledgment = fields.Datetime.now()
                     rec_dian_document.email_response = 'accepted'
+
+
+    def _get_rate_date(self, company_id, currency_id, date_invoice):
+        Calculationrate = 0.00
+        sql = '''
+        select max(name) as date
+          from res_currency_rate
+         where company_id = %s
+           and currency_id = %s
+           and name <= '%s'
+         ''' % (company_id, currency_id, date_invoice)
+
+        self.sudo().env.cr.execute( sql )
+        resultado = self.sudo().env.cr.dictfetchall()
+        if  resultado[0]['date'] != None:
+            sql = '''
+            select rate as rate
+              from res_currency_rate
+             where company_id = %s
+               and currency_id = %s
+               and name = '%s'
+             ''' % (company_id, currency_id, resultado[0]['date'])
+
+            self.sudo().env.cr.execute( sql )
+            resultado = self.sudo().env.cr.dictfetchall()
+            rate = resultado[0]['rate']
+            Calculationrate = 1.00 / rate
+        else:
+            raise ValidationError("La divisa utilizada en la factura no tiene tasa de cambio registrada")
+        return Calculationrate
