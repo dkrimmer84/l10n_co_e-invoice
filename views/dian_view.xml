@@ -105,7 +105,6 @@
         </field>
     </record>
 
-
     <act_window id="dian_document_action_view"
                 name="Documentos DIAN"
                 res_model="dian.document"
@@ -122,6 +121,111 @@
                 sequence="99"
     />
 
+    <menuitem   id="menu_dian_unspsc" 
+                name="DIAN Clasificador de Bienes y Servicios UNSPSC" 
+                parent="stock.menu_stock_config_settings" 
+                sequence="99"
+    />
+
+  
+    <record id="dian_UNSPSC_segment_tree_view" model="ir.ui.view">
+        <field name="name">Lista de Segmentos UNSPSC DIAN</field>
+        <field name="model">dian.unspsc.segment</field>
+        <field name="arch" type="xml">
+            <tree  string="Segmentos UNSPSC DIAN">
+                <field name="segment"/>
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="dian_UNSPSC_segment_action_view">
+        <field name="name">DIAN UNSPSC Segmento</field>
+        <field name="res_model">dian.unspsc.segment</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem action="dian_UNSPSC_segment_action_view" 
+              id="dian_UNSPSC_segment_menu" 
+              parent="menu_dian_unspsc" 
+              sequence="95"
+    />
+
+    <record id="dian_UNSPSC_family_tree_view" model="ir.ui.view">
+        <field name="name">Lista de Familia UNSPSC DIAN</field>
+        <field name="model">dian.unspsc.family</field>
+        <field name="arch" type="xml">
+            <tree  string="Familias UNSPSC DIAN">
+                <field name="family"/>
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="dian_UNSPSC_family_action_view">
+        <field name="name">DIAN UNSPSC Familia</field>
+        <field name="res_model">dian.unspsc.family</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem action="dian_UNSPSC_family_action_view" 
+              id="dian_UNSPSC_family_menu" 
+              parent="menu_dian_unspsc" 
+              sequence="96"
+    />
+
+    <record id="dian_UNSPSC_class_tree_view" model="ir.ui.view">
+        <field name="name">Lista de Clase UNSPSC DIAN</field>
+        <field name="model">dian.unspsc.class</field>
+        <field name="arch" type="xml">
+            <tree  string="Clases UNSPSC DIAN">
+                <field name="classe"/>
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="dian_UNSPSC_class_action_view">
+        <field name="name">DIAN UNSPSC Clase</field>
+        <field name="res_model">dian.unspsc.class</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem action="dian_UNSPSC_class_action_view" 
+              id="dian_UNSPSC_class_menu" 
+              parent="menu_dian_unspsc" 
+              sequence="97"
+    />
+
+    <record id="dian_UNSPSC_product_tree_view" model="ir.ui.view">
+        <field name="name">Lista de Producto UNSPSC DIAN</field>
+        <field name="model">dian.unspsc.product</field>
+        <field name="arch" type="xml">
+            <tree  string="Producto UNSPSC DIAN">                
+                <field name="segment_id"/>
+                <field name="family_id"/>
+                <field name="class_id"/>
+                <field name="product"/>
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="dian_UNSPSC_product_action_view">
+        <field name="name">DIAN UNSPSC Producto</field>
+        <field name="res_model">dian.unspsc.product</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem action="dian_UNSPSC_product_action_view" 
+              id="dian_UNSPSC_product_menu" 
+              parent="menu_dian_unspsc" 
+              sequence="98"
+    />
 
 <!--     <record id="send_pending_dian_cron" model="ir.cron">
         <field name="name">Enviar documentos al DIAN</field>

@@ -12,7 +12,12 @@
                 	<group>
                 		<field name="operation_type" />
                 	</group>
-                    
+                    <group>
+                        <field name="product_UNSPSC_id" />
+                        <field name="segment_name" />
+                        <field name="family_name" />
+                        <field name="class_name" />
+                    </group>
                 </page>
             </xpath>
         </field>

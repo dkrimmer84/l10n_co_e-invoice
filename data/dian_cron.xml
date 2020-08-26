@@ -10,7 +10,7 @@
             <field name="interval_type">days</field>
             <field name="numbercall">-1</field>
             <field name="doall">False</field>
-             <field name="state">code</field>
+            <field name="state">code</field>
             <field name="model_id" ref="model_dian_document"/>
             <field name="code">model._cron_validate_accept_email_invoice_dian()</field>
             <field name="args">()</field>

@@ -2320,6 +2320,9 @@ class DianDocument(models.Model):
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Description>%(ILDescription)s</cbc:Description>
+            <cac:StandardItemIdentification>
+              <cbc:ID schemeAgencyID="10" schemeID="001" schemeName="UNSPSC">%(ID_UNSPSC)s</cbc:ID>
+            </cac:StandardItemIdentification>
             %(InformationContentProviderParty)s
         </cac:Item>
         <cac:Price>
@@ -2369,6 +2372,9 @@ class DianDocument(models.Model):
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Description>%(ILDescription)s</cbc:Description>
+            <cac:StandardItemIdentification>
+              <cbc:ID schemeAgencyID="10" schemeID="001" schemeName="UNSPSC">%(ID_UNSPSC)s</cbc:ID>
+            </cac:StandardItemIdentification>
             %(InformationContentProviderParty)s
         </cac:Item>
         <cac:Price>
@@ -2401,6 +2407,9 @@ class DianDocument(models.Model):
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Description>%(ILDescription)s</cbc:Description>
+            <cac:StandardItemIdentification>
+              <cbc:ID schemeAgencyID="10" schemeID="001" schemeName="UNSPSC">%(ID_UNSPSC)s</cbc:ID>
+            </cac:StandardItemIdentification>
             %(InformationContentProviderParty)s
         </cac:Item>
         <cac:Price>
@@ -2620,6 +2629,7 @@ class DianDocument(models.Model):
         template_InvoiceLineTaxSubtotal_xml = self._template_InvoiceLineTaxSubtotal_xml()
         data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
         for data_line in data_lines_doc:
+            ID_UNSPSC = data_line.product_id.product_UNSPSC_id.product
             if data_line.price_subtotal:
                 ILLinea += 1
                 ILInvoicedQuantity = self._complements_second_decimal_total(data_line.quantity)           # 13.1.1.9 - Cantidad: Cantidad del artículo solicitado. Número de unidades servidas/prestadas.
@@ -2677,7 +2687,8 @@ class DianDocument(models.Model):
                                                         'ILTaxAmount' : ILTaxAmount,
                                                         'InvoiceLineTaxSubtotal' : InvoiceLineTaxSubtotal_xml,
                                                         'InformationContentProviderParty' : InformationContentProviderParty,
-                                                        'CurrencyID' : CurrencyID                                                       
+                                                        'CurrencyID' : CurrencyID,
+                                                        'ID_UNSPSC' : ID_UNSPSC                                                       
                                                         }
         return data_line_xml
 
@@ -2689,6 +2700,7 @@ class DianDocument(models.Model):
         ILTaxAmount = 0.00
         InvoiceLineTaxSubtotal_xml = ''
         for data_line in data_lines_doc:
+            ID_UNSPSC = data_line.product_id.product_UNSPSC_id.product
             ILLinea += 1
             ILInvoicedQuantity = self._complements_second_decimal_total(data_line.quantity)           # 13.1.1.9 - Cantidad: Cantidad del artículo solicitado. Número de unidades servidas/prestadas.
             ILLineExtensionAmount = self._complements_second_decimal_total(data_line.price_subtotal)  # 13.1.1.12 - Costo Total: Coste Total. Resultado: Unidad de Medida x Precio Unidad.
@@ -2738,7 +2750,8 @@ class DianDocument(models.Model):
                                                     'ILID' : ILID,
                                                     'ILName' : ILName,
                                                     'InformationContentProviderParty' : InformationContentProviderParty,
-                                                    'CurrencyID' : CurrencyID
+                                                    'CurrencyID' : CurrencyID,
+                                                    'ID_UNSPSC' : ID_UNSPSC   
                                                     }
         return data_credit_note_line_xml
 
@@ -2748,6 +2761,7 @@ class DianDocument(models.Model):
         data_debit_note_line_xml = ''
         data_lines_doc = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id)])
         for data_line in data_lines_doc:
+            ID_UNSPSC = data_line.product_id.product_UNSPSC_id.product
             ILLinea += 1
             ILInvoicedQuantity = self._complements_second_decimal_total(data_line.quantity)           # 13.1.1.9 - Cantidad: Cantidad del artículo solicitado. Número de unidades servidas/prestadas.
             ILLineExtensionAmount = self._complements_second_decimal_total(data_line.price_subtotal)  # 13.1.1.12 - Costo Total: Coste Total. Resultado: Unidad de Medida x Precio Unidad.
@@ -2798,7 +2812,8 @@ class DianDocument(models.Model):
                                                     'ILID' : ILID,
                                                     'ILName' : ILName,
                                                     'InformationContentProviderParty' : InformationContentProviderParty,
-                                                    'CurrencyID' : CurrencyID                                                    
+                                                    'CurrencyID' : CurrencyID,
+                                                    'ID_UNSPSC' : ID_UNSPSC                                                    
                                                     }
 
 

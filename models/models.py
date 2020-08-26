@@ -19,5 +19,8 @@ class ProductTemplate(models.Model):
     ('04','Exportación'),('05','Generica'),('06','Generica con pago anticipado'),
     ('07','Generica con periodo de facturacion'),('08','Consorcio'),('09','Servicios AIU'),('10','Estandar'),
     ('11','Mandatos bienes'),('12','Mandatos Servicios'),('00', 'No Aplica')], string='Tipo de operación DIAN')
-
-    
+	
+    product_UNSPSC_id = fields.Many2one('dian.unspsc.product', string="Producto UNSPSC")
+    segment_name = fields.Char(string="Segmento UNSPSC", readonly=True, related='product_UNSPSC_id.segment_id.name')
+    family_name = fields.Char(string="Familia UNSPSC", readonly=True, related='product_UNSPSC_id.family_id.name')
+    class_name = fields.Char(string="Segmento UNSPSC", readonly=True, related='product_UNSPSC_id.class_id.name')
