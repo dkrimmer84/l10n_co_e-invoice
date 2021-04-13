@@ -770,7 +770,7 @@ class DianDocument(models.Model):
         
         if zipPath:
             # Add Zip file at attachment
-            zip_content = self._read_zip_content(fileName + '.xml', fileName[:-4] + '.zip', dian_xml, zipPath)
+            zip_content = self._read_zip_content(fileName + '.xml', fileName + '.zip', dian_xml, zipPath)
             dictAdjunto2 = {
                 'name': fileName[:-4] + '_zip',
                 'res_id': rs_invoice.id,
