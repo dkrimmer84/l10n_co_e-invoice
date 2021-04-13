@@ -278,10 +278,14 @@ class DianDocument(models.Model):
             dian_document.write({'state' : 'exitoso', 'resend' : False})
             # Envío de correo
             if dian_document.contingency_4 == False:
-                if self.enviar_email(dian_document.xml_document, dian_document.document_id.id, dian_document.xml_file_name):
+                if self.enviar_email(dian_document.xml_document, dian_document.document_id.id, dian_document.xml_file_name, dian_constants['document_repository']):
                     dian_document.date_email_send = fields.Datetime.now()
         else:
+            # Test environment
             data_header_doc.write({'diancode_id' : dian_document.id})
+            if self.enviar_email(dian_document.xml_document, dian_document.document_id.id, dian_document.xml_file_name, dian_constants['document_repository']):
+                dian_document.date_email_send = fields.Datetime.now()
+
             if response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode'] == '90':
                 dian_document.response_message_dian += '- Respuesta consulta estado del documento: TrackId no encontrado'
                 dian_document.write({'state' : 'por_validar', 'resend' : False})
@@ -678,7 +682,7 @@ class DianDocument(models.Model):
                                 doc_send_dian.QR_code = self.sudo()._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
                                 # Envío de correo
                                 if doc_send_dian.contingency_4 == False:
-                                    if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
+                                    if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName, dian_constants['document_repository']):
                                         doc_send_dian.date_email_send = fields.Datetime.now()
                             else:
                                 doc_send_dian.response_message_dian = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
@@ -726,7 +730,7 @@ class DianDocument(models.Model):
                     
                     # Enviar email
                     data_header_doc.write({'diancode_id' : doc_send_dian.id})
-                    if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName):
+                    if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName, dian_constants['document_repository']):
                         doc_send_dian.write({'state_contingency' : 'exitosa', 'resend' : False})
                         doc_send_dian.date_email_send = fields.Datetime.now()
                         doc_send_dian.xml_response_contingency_dian = 'XML de factura de contigencia enviada al cliente'
@@ -746,7 +750,7 @@ class DianDocument(models.Model):
 
 
     @api.multi
-    def enviar_email(self, data_xml_document, invoice_id, fileName):
+    def enviar_email(self, data_xml_document, invoice_id, fileName, zipPath=False):
         rs_invoice = self.env['account.invoice'].sudo().search([('id', '=', invoice_id)])
         dian_xml = base64.b64encode(data_xml_document.encode())
         rs_invoice.write({'archivo_xml_invoice': dian_xml})
@@ -759,12 +763,33 @@ class DianDocument(models.Model):
             'res_field': 'archivo_xml_invoice',
             'mimetype': 'application/xml;charset=utf-8',
             'public': False,
-            'datas_fname': fileName,
+            'datas_fname': fileName + '.xml',
             'res_name': fileName,
             'db_datas': dian_xml,
         }
+        
+        if zipPath:
+            # Add Zip file at attachment
+            zip_content = self._read_zip_content(fileName + '.xml', fileName[:-4] + '.zip', dian_xml, zipPath)
+            dictAdjunto2 = {
+                'name': fileName[:-4] + '_zip',
+                'res_id': rs_invoice.id,
+                'res_model': 'account.invoice',
+                'res_model_name': 'Factura',
+                'res_field': 'archivo_zip_invoice',
+                'mimetype': 'application/zip;charset=utf-8',
+                'public': False,
+                'datas_fname': fileName + '.zip',
+                'res_name': fileName,
+                'db_datas': zip_content,
+            }
+
+            nuevo_adjunto2 = rs_adjunto.create(dictAdjunto2)
+            rs_invoice.xml_adjunto_ids += nuevo_adjunto2
+
         nuevo_adjunto = rs_adjunto.create(dictAdjunto)
         rs_invoice.xml_adjunto_ids += nuevo_adjunto
+
         plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
         if plantilla_correo:
             plantilla_correo.attachment_ids = rs_invoice.xml_adjunto_ids
@@ -3082,7 +3107,7 @@ class DianDocument(models.Model):
         zip_file = document_repository + '/' + FileNameZIP
         zf = zipfile.ZipFile(zip_file, mode="w")
         try:
-            zf.write(xml_file, compress_type=compression)
+            zf.write(xml_file, os.path.relpath(xml_file, document_repository), compress_type=compression)
         finally:
             zf.close()
         # Obtiene datos comprimidos
@@ -3093,6 +3118,14 @@ class DianDocument(models.Model):
         contenido_data_xml_b64 = contenido_data_xml_b64.decode()
         return contenido_data_xml_b64
 
+    def _read_zip_content(self, FileNameXML, FileNameZIP, data_xml_document, document_repository):
+        # Obtiene datos comprimidos
+        zip_file = document_repository + '/' + FileNameZIP
+        data_xml = zip_file
+        data_xml = open(data_xml,'rb')
+        data_xml = data_xml.read()
+        contenido_data_xml_b64 = base64.b64encode(data_xml)
+        return contenido_data_xml_b64
 
     @api.model
     def _generate_barcode(self, dian_constants, data_constants_document, CUFE, data_taxs):
