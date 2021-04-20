@@ -301,10 +301,13 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def valitade_dian(self):
+        _logger.info('valitade_dian|start')
         document_dian = self.env['dian.document'].search([('document_id', '=', self.id)])
+        _logger.info('valitade_dian|document_dian|' + str(self.env['dian.document'].search([('document_id', '=', self.id)])))
 
         #if document_dian.exist_dian(document_dian.id) == False:
         if self.in_contingency_4:
+            _logger.info('valitade_dian|in_contingency_4|in_contingency_4')
             # Documento de ND
             if self.type == 'out_invoice' and self.is_debit_note == True:
                 raise ValidationError("No puede validar notas de débito mientras se encuentra en estado de contingencia tipo 4")
@@ -315,6 +318,7 @@ class AccountInvoice(models.Model):
                 raise ValidationError("Factura de contingencia tipo 4 ya fue enviada al cliente. Una vez se restablezca el servicio, debe pulsar este bóton para enviar la contingencia tipo 4 bota la DIAN")
 
         if document_dian.state == 'rechazado':
+            _logger.info('valitade_dian|document_dian.state|' + document_dian.state)
             document_dian.response_message_dian = ' '
             document_dian.xml_response_dian = ' '
             document_dian.xml_send_query_dian = ' '
@@ -327,21 +331,30 @@ class AccountInvoice(models.Model):
             document_dian.write({'state' : 'por_notificar', 'resend' : False})
             if self.in_contingency_4 == True and self.contingency_3 == False:
                 document_type = document_dian.document_type
+                _logger.info('valitade_dian|'+ document_dian.state +'|document_type|' + document_type)
             else:
                 document_type = document_dian.document_type if self.contingency_3 == False else 'contingency'
+                _logger.info('valitade_dian|'+ document_dian.state +'|document_type|' + document_type)
+            _logger.info('valitade_dian|'+ document_dian.state +'|send_pending_dian|call')
             document_dian.send_pending_dian(document_dian.id, document_type)
 
         if document_dian.state == ('por_notificar'):
+            _logger.info('valitade_dian|'+ document_dian.state +'|document_dian.state|' + document_dian.state)
             if self.in_contingency_4 == True and self.contingency_3 == False:
                 document_type = document_dian.document_type
             else:
                 document_type = document_dian.document_type if self.contingency_3 == False else 'contingency'
+            _logger.info('valitade_dian|'+ document_dian.state +'|document_type|' + document_type)
+            _logger.info('valitade_dian|'+ document_dian.state +'|send_pending_dian|call')
             document_dian.send_pending_dian(document_dian.id, document_type)
 
-        company = self.env['res.company'].sudo().search([('id', '=', self.company_id.id)])
+        company = self.env['res.company'].sudo().search([('id', '=', self.company_id.id)])        
         # Ambiente pruebas
         if company.production == False and self.in_contingency_4 == False:
+            _logger.info('valitade_dian|dev|is_production|' + str(company.production))
             if document_dian.state == 'por_validar':
+                _logger.info('valitade_dian|dev|document_dian.state|' +  document_dian.state)
+                _logger.info('valitade_dian|dev|'+ document_dian.state +'|request_validating_dian|call')
                 document_dian.request_validating_dian(document_dian.id)
         # Determina si existen facturas con contingencias tipo 4 que no han sidoenviadas a la DIAN
         #company.exists_invoice_contingency_4 = False
@@ -354,6 +367,7 @@ class AccountInvoice(models.Model):
 
     @api.model
     def create(self, vals):
+        _logger.info('create|start')
         if 'type' in vals:
             if vals['type'] == 'out_refund':
                 if 'refund_invoice_id' in vals and 'payment_term_id' in vals:

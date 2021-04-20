@@ -190,6 +190,7 @@ class DianDocument(models.Model):
        
     @api.model
     def _get_resolution_dian(self, data_header_doc):
+        _logger.info('_get_resolution_dian|start')
         #rec_active_resolution = self.env['ir.sequence.dian_resolution'].search([('resolution_number', '=', data_header_doc.resolution_number)])
         rec_active_resolution = data_header_doc.journal_id.sequence_id.dian_resolution_ids.filtered(lambda r: r.resolution_number == data_header_doc.resolution_number)
         dict_resolution_dian = {}
@@ -212,6 +213,8 @@ class DianDocument(models.Model):
 
     @api.model
     def request_validating_dian(self, document_id):
+        _logger.info('request_validating_dian|start')
+        _logger.info('request_validating_dian|document_id|' + str(document_id))
         user = self.env['res.users'].sudo().search([('id', '=', self.env.uid)])
         company = self.env['res.company'].sudo().search([('id', '=', user.company_id.id)])
         dian_document = self.env['dian.document'].search([('id', '=', document_id)])
@@ -260,6 +263,7 @@ class DianDocument(models.Model):
         except:
             raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas. Por favor, revise su red o el acceso a internet.')
         #   Respuesta de petición
+        _logger.info('request_validating_dian|response.status_code|' + str(response.status_code))
         if response.status_code != 200: # Respuesta de envío no exitosa
             if response.status_code == 500:
                 raise ValidationError('Error 500 = Error de servidor interno.')
@@ -272,7 +276,9 @@ class DianDocument(models.Model):
             else:
                 raise ValidationError('Se ha producido un error de comunicación con la DIAN.')
         response_dict = xmltodict.parse(response.content)
+        _logger.info('request_validating_dian|response_dict|' + str(response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode']))
         if response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode'] == '00':
+            _logger.info('request_validating_dian|response_dict|production|')
             data_header_doc.write({'diancode_id' : dian_document.id})
             dian_document.response_message_dian += '- Respuesta consulta estado del documento: Procesado correctamente \n'
             dian_document.write({'state' : 'exitoso', 'resend' : False})
@@ -282,11 +288,13 @@ class DianDocument(models.Model):
                     dian_document.date_email_send = fields.Datetime.now()
         else:
             # Test environment
+            _logger.info('request_validating_dian|response_dict|dev|')          
             data_header_doc.write({'diancode_id' : dian_document.id})
             if self.enviar_email(dian_document.xml_document, dian_document.document_id.id, dian_document.xml_file_name, dian_constants['document_repository']):
+                _logger.info('request_validating_dian|response_dict|dev|date_email_send|call')
                 dian_document.date_email_send = fields.Datetime.now()
 
-            if response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode'] == '90':
+            if response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode'] == '90':                
                 dian_document.response_message_dian += '- Respuesta consulta estado del documento: TrackId no encontrado'
                 dian_document.write({'state' : 'por_validar', 'resend' : False})
             elif response_dict['s:Envelope']['s:Body']['GetStatusZipResponse']['GetStatusZipResult']['b:DianResponse']['b:StatusCode'] == '99':
@@ -302,6 +310,7 @@ class DianDocument(models.Model):
 
     @api.model
     def exist_dian(self, document_id):
+        _logger.info('exist_dian|start')
         dic_result_verify_status  = {}
         user = self.env['res.users'].search([('id', '=', self.env.uid)])
         company = self.env['res.company'].search([('id', '=', user.company_id.id)])
@@ -357,6 +366,7 @@ class DianDocument(models.Model):
         except:
             raise ValidationError('No existe comunicación con la DIAN para el servicio de recepción de Facturas Electrónicas. Por favor, revise su red o el acceso a internet.')
         #   Respuesta de petición
+        _logger.info('exist_dian|response.status_code|' + str(response.status_code))
         if response.status_code != 200: # Respuesta de envío no exitosa
             if response.status_code == 500:
                 raise ValidationError('Error 500 = Error de servidor interno.')
@@ -372,6 +382,7 @@ class DianDocument(models.Model):
 
         dic_result_verify_status['result_verify_status'] = False
         if response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusCode'] == '00':
+            _logger.info('exist_dian|response_dict|StatusCode|' + str(response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusCode']))
             dic_result_verify_status['result_verify_status'] = True
 
         dic_result_verify_status['response_message_dian'] = response_dict['s:Envelope']['s:Body']['GetStatusResponse']['GetStatusResult']['b:StatusCode'] + ' '  
@@ -383,6 +394,7 @@ class DianDocument(models.Model):
 
     @api.model
     def send_pending_dian(self, document_id, document_type):
+        _logger.info('send_pending_dian|start')
         dic_result_verify_status = self.exist_dian(self.id) 
         if dic_result_verify_status['result_verify_status'] == False:
             resultado = self._get_datetime()
@@ -444,6 +456,7 @@ class DianDocument(models.Model):
                 # Se obtienen constantes del documento
                 data_constants_document = self._generate_data_constants_document(data_header_doc, dian_constants, document_type, company.in_contingency_4)            
                 # Construye el documento XML para la factura sin firma
+                _logger.info('send_pending_dian|data_constants_document|InvoiceTypeCode|' + str(data_constants_document['InvoiceTypeCode']))
                 if data_constants_document['InvoiceTypeCode'] in ('01','04'):
                     # Genera líneas de detalle de los impuestos
                     data_taxs = self._get_taxs_data(data_header_doc.id)
@@ -561,7 +574,8 @@ class DianDocument(models.Model):
                 identifierSecurityToken = uuid.uuid4()
                 identifierTo = uuid.uuid4()            
                 # Preparación del envío de la factura 
-                if company.production:                 
+                _logger.info('send_pending_dian|company.production|' + str(company.production))
+                if company.production:                                     
                     #template_SendBillSyncsend_xml = self._template_SendBillSyncsend_xml()
                     template_SendBillSyncsend_xml = self._template_SendBillSyncsend_xml()
                     data_xml_send = self._generate_SendBillSync_send_xml(template_SendBillSyncsend_xml, fileName, 
@@ -615,7 +629,7 @@ class DianDocument(models.Model):
                 URL_WEBService_DIAN = server_url['PRODUCCION_VP'] if company.production else server_url['HABILITACION_VP']
 
                 if company.in_contingency_4 == False: # Diferente a contingencia tipo 4 (Problemas tecnológicos en la DIAN)
-
+                    _logger.info('send_pending_dian|requests.post|initiate')
                     try:
                         response = requests.post(URL_WEBService_DIAN,data=data_xml_send,headers=headers)
                     except:
@@ -623,7 +637,7 @@ class DianDocument(models.Model):
                     
                     # code = 500
                     # if code != 200:
-
+                    _logger.info('send_pending_dian|requests.post|response.status_code|' + str(response.status_code))
                     if response.status_code != 200: # Respuesta de envío no exitosa
 
                         # if code in (500,503,507,508):
@@ -660,14 +674,19 @@ class DianDocument(models.Model):
                         # Procesa respuesta DIAN 
                         response_dict = xmltodict.parse(response.content)
                         dict_mensaje = {}
-                        if company.production:
+                        _logger.info('send_pending_dian|requests.post|' + str(response.status_code) + '|company.production|' + str(company.production))                        
+                        if company.production:                                                        
+                            _logger.info('send_pending_dian|requests.post|production')
                             dict_result_verify_status = self.exist_dian(self.id) 
                             if dict_result_verify_status['result_verify_status'] == True:
+                                _logger.info('send_pending_dian|requests.post|dict_result_verify_status|result_verify_status|True')
                                 return
+                            _logger.info('send_pending_dian|requests.post|dict_result_verify_status|False')
                             dict_mensaje = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid']
                             doc_send_dian.response_message_dian = ' '
-                            #if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid'] == 'true':
+                            #if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:IsValid'] == 'true':                            
                             if response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] == '00':
+                                _logger.info('send_pending_dian|requests.post|dict_result_verify_status|response|StatusCode' + str(response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode']))
                                 doc_send_dian.response_message_dian = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
@@ -685,6 +704,7 @@ class DianDocument(models.Model):
                                     if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName, dian_constants['document_repository']):
                                         doc_send_dian.date_email_send = fields.Datetime.now()
                             else:
+                                _logger.info('send_pending_dian|requests.post|StatusCode|not00')
                                 doc_send_dian.response_message_dian = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
@@ -698,6 +718,7 @@ class DianDocument(models.Model):
                                 # Generar código QR
                                 doc_send_dian.QR_code = self.sudo()._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
                         else: # Ambiente de pruebas
+                            _logger.info('send_pending_dian|requests.post|dev')
                             dict_mensaje = response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']
                             if '@i:nil' in dict_mensaje:
                                 if response_dict['s:Envelope']['s:Body']['SendTestSetAsyncResponse']['SendTestSetAsyncResult']['b:ErrorMessageList']['@i:nil'] == 'true':
@@ -722,6 +743,7 @@ class DianDocument(models.Model):
                             # Generar código QR
                             doc_send_dian.QR_code = self.sudo()._generate_barcode(dian_constants, data_constants_document, CUFE, data_taxs)
                 else: # Contigencia tipo 4
+                    _logger.info('send_pending_dian|contingency_4|initiate')
                     data_header_doc.contingency_4 = True                
                     doc_send_dian.xml_document_contingency = data_xml_document
                     doc_send_dian.xml_send_query_dian = data_xml_send
@@ -751,6 +773,11 @@ class DianDocument(models.Model):
 
     @api.multi
     def enviar_email(self, data_xml_document, invoice_id, fileName, zipPath=False):
+        _logger.info('enviar_email|start')
+        user = self.env['res.users'].sudo().search([('id', '=', self.env.uid)])
+        company = self.env['res.company'].sudo().search([('id', '=', user.company_id.id)])
+        fileName = fileName if company.production else fileName[:-4]
+
         rs_invoice = self.env['account.invoice'].sudo().search([('id', '=', invoice_id)])
         dian_xml = base64.b64encode(data_xml_document.encode())
         rs_invoice.write({'archivo_xml_invoice': dian_xml})
@@ -770,6 +797,7 @@ class DianDocument(models.Model):
         
         if zipPath:
             # Add Zip file at attachment
+            _logger.info('enviar_email|adding Zip File')
             zip_content = self._read_zip_content(fileName + '.xml', fileName + '.zip', dian_xml, zipPath)
             dictAdjunto2 = {
                 'name': fileName[:-4] + '_zip',
@@ -793,14 +821,16 @@ class DianDocument(models.Model):
         plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
         if plantilla_correo:
             plantilla_correo.attachment_ids = rs_invoice.xml_adjunto_ids
-            plantilla_correo.send_mail(rs_invoice.id, force_send = True) 
+            plantilla_correo.send_mail(rs_invoice.id, force_send = True)
+            _logger.info('enviar_email|email sent successfully') 
         else:       
-            raise ValidationError("No existe la plantilla de correo email_template_edi_invoice_dian para el email")
+            raise ValidationError("No existe la plantilla de correo email_template_edi_invoice_dian para el email")        
         return True
 
 
     @api.multi
     def _generate_SignatureValue_GetStatus(self, document_repository, password, data_xml_SignedInfo_generate, archivo_pem, archivo_certificado):
+        _logger.info('_generate_SignatureValue_GetStatus|start')
         data_xml_SignatureValue_c14n = etree.tostring(etree.fromstring(data_xml_SignedInfo_generate), method="c14n")
         #data_xml_SignatureValue_c14n = data_xml_SignatureValue_c14n.decode()
         archivo_key = document_repository+'/'+archivo_certificado
@@ -824,6 +854,7 @@ class DianDocument(models.Model):
 
     @api.model
     def _generate_signature(self, data_xml_document, template_signature_data_xml, dian_constants, data_constants_document):
+        _logger.info('_generate_signature|start')
         data_xml_keyinfo_base = ''
         data_xml_politics = ''
         data_xml_SignedProperties_base = ''
@@ -905,6 +936,7 @@ class DianDocument(models.Model):
 
     @api.model
     def _get_dian_constants(self, data_header_doc):
+        _logger.info('_get_dian_constants|start')
         company = self.env.user.company_id
         partner = company.partner_id 
         dian_constants = {}
@@ -953,6 +985,7 @@ class DianDocument(models.Model):
 
 
     def _generate_data_constants_document(self, data_header_doc, dian_constants, document_type, in_contingency_4):
+        _logger.info('_generate_data_constants_document|start')
         NitSinDV = dian_constants['NitSinDV']
         data_constants_document = {}
         data_resolution  = self._get_resolution_dian(data_header_doc)
@@ -1083,6 +1116,7 @@ class DianDocument(models.Model):
 
 
     def _get_partner_fiscal_responsability_code(self,partner_id):
+        _logger.info('_get_partner_fiscal_responsability_code|start')
         rec_partner = self.env['res.partner'].search([('id', '=', partner_id)])
         fiscal_responsability_codes = ''
         if rec_partner:
