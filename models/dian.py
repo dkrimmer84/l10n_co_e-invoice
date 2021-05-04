@@ -453,14 +453,6 @@ class DianDocument(models.Model):
             for doc_send_dian in docs_send_dian:
                 data_header_doc = self.env['account.invoice'].search([('id', '=', doc_send_dian.document_id.id)])
                 dian_constants = self._get_dian_constants(data_header_doc)
-                _logger.info('send_pending_dian|doc_send_dian|state|' + str(doc_send_dian.state))
-                if doc_send_dian.state == 'exitoso':
-                    if doc_send_dian.contingency_4 == False:
-                        _logger.info('send_pending_dian|doc_send_dian|try to send again|')
-                        if self.enviar_email(doc_send_dian.xml_document, doc_send_dian.document_id.id, doc_send_dian.zip_file_name, dian_constants['document_repository'], True):
-                            doc_send_dian.date_email_send = fields.Datetime.now()
-                            _logger.info('send_pending_dian|doc_send_dian|Email sent again|')
-                            return
                 # Se obtienen constantes del documento
                 data_constants_document = self._generate_data_constants_document(data_header_doc, dian_constants, document_type, company.in_contingency_4)            
                 # Construye el documento XML para la factura sin firma
@@ -712,8 +704,7 @@ class DianDocument(models.Model):
                                     if self.enviar_email(data_xml_document, doc_send_dian.document_id.id, fileName, dian_constants['document_repository']):
                                         doc_send_dian.date_email_send = fields.Datetime.now()
                             else:
-                                _logger.info('send_pending_dian|requests.post|StatusCode|not00|')
-                                _logger.info('send_pending_dian|requests.post|dict_result_verify_status|response|StatusCode' + str(response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode']))
+                                _logger.info('send_pending_dian|requests.post|StatusCode|not00')
                                 doc_send_dian.response_message_dian = response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusCode'] + ' '  
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusDescription'] + '\n'
                                 doc_send_dian.response_message_dian += response_dict['s:Envelope']['s:Body']['SendBillSyncResponse']['SendBillSyncResult']['b:StatusMessage']
@@ -781,26 +772,13 @@ class DianDocument(models.Model):
 
 
     @api.multi
-    def enviar_email(self, data_xml_document, invoice_id, fileName, zipPath=False, retry=False):
+    def enviar_email(self, data_xml_document, invoice_id, fileName, zipPath=False):
         _logger.info('enviar_email|start')
-        _logger.info('enviar_email|retry|' + str(retry))
         user = self.env['res.users'].sudo().search([('id', '=', self.env.uid)])
         company = self.env['res.company'].sudo().search([('id', '=', user.company_id.id)])
-        # fileName = fileName if company.production else fileName[:-4]
-        _logger.info('enviar_email|doc_send_dian|fileNameContains|' + str(fileName.find(".")))
-        fileName = fileName if fileName.find(".") == -1 else fileName[:-4]
+        fileName = fileName if company.production else fileName[:-4]
 
-        _logger.info('enviar_email|doc_send_dian|filename|' + str(fileName))
         rs_invoice = self.env['account.invoice'].sudo().search([('id', '=', invoice_id)])
-        if retry:
-            plantilla_correo = self.env.ref('l10n_co_e-invoice.email_template_edi_invoice_dian', False)
-            if plantilla_correo:
-                plantilla_correo.send_mail(rs_invoice.id, force_send = True)
-                _logger.info('enviar_email|email re-sent successfully') 
-            else:       
-                raise ValidationError("No existe la plantilla de correo email_template_edi_invoice_dian para el email")        
-            return True
-
         dian_xml = base64.b64encode(data_xml_document.encode())
         rs_invoice.write({'archivo_xml_invoice': dian_xml})
         rs_adjunto = self.env['ir.attachment'].sudo()
