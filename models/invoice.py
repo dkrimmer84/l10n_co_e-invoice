@@ -38,6 +38,19 @@ class AccountInvoice(models.Model):
     archivo_xml_invoice = fields.Binary('archivo DIAN xml de factura', readonly=True)
     xml_adjunto_ids = fields.Many2many('ir.attachment', string="Archivo adjunto xml de factura")
 
+    concepto_credit_note = fields.Selection(
+        [('1', 'Devolución parcial de los bienes y/o no aceptación parcial del servicio'),
+         ('2', 'Anulación de factura electrónica'),
+         ('3', 'Rebaja  o descuento parcial o total'),
+         ('4', 'Ajuste de precio'),
+         ('5', 'Otros')], u'Concepto Corrección')
+
+    concept_debit_note = fields.Selection(
+        [('1', 'Intereses'),
+         ('2', 'Gastos por cobrar'),
+         ('3', 'Cambio del valor'),
+         ('4', 'Otros')], u'Concepto Corrección')
+
 
     @api.multi
     def write(self, vals):
