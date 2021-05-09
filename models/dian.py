@@ -1351,7 +1351,7 @@ class DianDocument(models.Model):
       <cbc:PayableAmount currencyID="%(CurrencyID)s">%(PayableAmount)s</cbc:PayableAmount>
    </cac:LegalMonetaryTotal>%(data_lines_xml)s
    <cac:Delivery>
-        <cac:DeliveryAddress>PaymentMeans
+        <cac:DeliveryAddress>
                 <cac:AddressLine>
                     <cbc:Line>%(DeliveryAddress)s</cbc:Line>
                 </cac:AddressLine>
