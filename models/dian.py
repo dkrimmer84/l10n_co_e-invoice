@@ -24,7 +24,7 @@ except ImportError:
 try:
     import png
 except ImportError:
-    _logger.warning('Cannot import png library ********************************')
+    _logger.warning('Cannot import png library ****************************_generate_taxs_data_xml****')
 
 try:
     import hashlib
@@ -459,7 +459,7 @@ class DianDocument(models.Model):
                 if data_constants_document['InvoiceTypeCode'] in ('01','04', '02'):
                     # Genera líneas de detalle de los impuestos
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'],document_type)
                     # Genera líneas de detalle de las factura
                     data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUFE
@@ -481,7 +481,7 @@ class DianDocument(models.Model):
                 # Construye el documento XML para la nota de crédito sin firma
                 if data_constants_document['InvoiceTypeCode'] == '91':
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'],document_type)
                     # Detalle líneas de nota de crédito                
                     data_credit_lines_xml = self._generate_credit_lines_data_xml(template_credit_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUDE
@@ -503,7 +503,7 @@ class DianDocument(models.Model):
                 # Construye el documento XML para la nota de dédito sin firma
                 if data_constants_document['InvoiceTypeCode'] == '92':
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'],document_type)
                     # Detalle líneas de nota de crédito                
                     data_debit_lines_xml = self._generate_debit_lines_data_xml(template_debit_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUFE
@@ -525,7 +525,7 @@ class DianDocument(models.Model):
                 # Construye el documento XML para la factura de contingencia sin firma
                 if data_constants_document['InvoiceTypeCode'] == '03':
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'],document_type)
                     # Genera líneas de detalle de las factura
                     data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUDE
