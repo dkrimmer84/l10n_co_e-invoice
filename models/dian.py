@@ -981,6 +981,10 @@ class DianDocument(models.Model):
         dian_constants['TaxSchemeID'] = partner.tribute_id.code
         dian_constants['TaxSchemeName'] = partner.tribute_id.name
         dian_constants['Currency'] = company.currency_id.id
+        dian_constants['SupplierCityNameSubentity'] = partner.xcity.name
+        dian_constants['DeliveryAddress'] = partner.partner_shipping_id.street if hasattr(partner, 'hasattr') else partner.street
+
+
         return dian_constants
 
 
@@ -1102,6 +1106,11 @@ class DianDocument(models.Model):
         data_constants_document['identifier'] = identifier
         identifierkeyinfo = uuid.uuid4()
         data_constants_document['identifierkeyinfo'] = identifierkeyinfo
+
+        data_constants_document['ResponseCodeCreditNote'] = data_header_doc.concepto_credit_note
+        data_constants_document['ResponseCodeDebitNote'] = data_header_doc.concept_debit_note
+        data_constants_document['DescriptionDebitCreditNote'] = data_header_doc.name
+
         return data_constants_document
 
 
@@ -1230,6 +1239,7 @@ class DianDocument(models.Model):
                <cbc:CityName>%(SupplierCityName)s</cbc:CityName>
                <cbc:CountrySubentity>%(SupplierCountrySubentity)s</cbc:CountrySubentity>
                <cbc:CountrySubentityCode>%(SupplierCountrySubentityCode)s</cbc:CountrySubentityCode>
+               
                <cac:AddressLine>
                   <cbc:Line>%(SupplierLine)s</cbc:Line>
                </cac:AddressLine>
@@ -1327,12 +1337,14 @@ class DianDocument(models.Model):
       <cbc:CalculationRate>%(CalculationRate)s</cbc:CalculationRate>
       <cbc:Date>%(DateRate)s</cbc:Date>
    </cac:PaymentExchangeRate>%(data_taxs_xml)s
-   <cac:LegalMonetaryTotal>
+   <cac:LegalMonetaryTotal>   
       <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(TotalLineExtensionAmount)s</cbc:LineExtensionAmount>
       <cbc:TaxExclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxExclusiveAmount)s</cbc:TaxExclusiveAmount>
       <cbc:TaxInclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
       <cbc:PayableAmount currencyID="%(CurrencyID)s">%(PayableAmount)s</cbc:PayableAmount>
    </cac:LegalMonetaryTotal>%(data_lines_xml)s
+
+   
 </Invoice>
 """
         return template_basic_data_fe_xml
@@ -1590,7 +1602,9 @@ class DianDocument(models.Model):
             'DateRate' : dcd['DateRate'],
             'SchemeIDAdquiriente' : dcd['SchemeIDAdquiriente'],
             'SchemeNameAdquiriente' : dcd['SchemeNameAdquiriente'],
-            'IDAdquiriente' : dcd['IDAdquiriente']
+            'IDAdquiriente' : dcd['IDAdquiriente'],
+            'SupplierCityNameSubentity': dc['SupplierCityNameSubentity'],
+            'DeliveryAddress': dc['DeliveryAddress'],
             }
         return template_basic_data_fe_xml
 
@@ -1876,6 +1890,12 @@ class DianDocument(models.Model):
             <ext:ExtensionContent></ext:ExtensionContent>
         </ext:UBLExtension>
     </ext:UBLExtensions>
+    
+    <cbc:DiscrepancyResponse>
+        <cbc:ResponseCode>%(ResponseCodeCreditNote)s</cbc:ResponseCode>
+        <cbc:Description>%(DescriptionCreditNote)s</cbc:Description>        
+    </cbc:DiscrepancyResponse>
+    
     <cbc:UBLVersionID>%(UBLVersionID)s</cbc:UBLVersionID>
     <cbc:CustomizationID>%(CustomizationID)s</cbc:CustomizationID>
     <cbc:ProfileID>%(ProfileID)s</cbc:ProfileID>
@@ -2019,6 +2039,7 @@ class DianDocument(models.Model):
        <cbc:TaxInclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
        <cbc:PayableAmount currencyID="%(CurrencyID)s">%(PayableAmount)s</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>%(data_credit_lines_xml)s
+    
 </CreditNote>"""
         return template_basic_data_nc_xml
 
