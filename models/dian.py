@@ -460,7 +460,7 @@ class DianDocument(models.Model):
                 if data_constants_document['InvoiceTypeCode'] in ('01','04'):
                     # Genera líneas de detalle de los impuestos
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'], document_type)
                     # Genera líneas de detalle de las factura
                     data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUFE
@@ -482,7 +482,7 @@ class DianDocument(models.Model):
                 # Construye el documento XML para la nota de crédito sin firma
                 if data_constants_document['InvoiceTypeCode'] == '91':
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'],document_type)
                     # Detalle líneas de nota de crédito                
                     data_credit_lines_xml = self._generate_credit_lines_data_xml(template_credit_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUDE
@@ -504,7 +504,7 @@ class DianDocument(models.Model):
                 # Construye el documento XML para la nota de dédito sin firma
                 if data_constants_document['InvoiceTypeCode'] == '92':
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'],document_type)
                     # Detalle líneas de nota de crédito                
                     data_debit_lines_xml = self._generate_debit_lines_data_xml(template_debit_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUFE
@@ -526,7 +526,7 @@ class DianDocument(models.Model):
                 # Construye el documento XML para la factura de contingencia sin firma
                 if data_constants_document['InvoiceTypeCode'] == '03':
                     data_taxs = self._get_taxs_data(data_header_doc.id)
-                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'])
+                    data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'],document_type)
                     # Genera líneas de detalle de las factura
                     data_lines_xml = self._generate_lines_data_xml(template_line_data_xml, data_header_doc.id, data_constants_document['CurrencyID'])
                     # Generar CUDE
@@ -883,7 +883,7 @@ class DianDocument(models.Model):
         KeyInfo = etree.fromstring(data_xml_signature)
         KeyInfo = etree.tostring(KeyInfo[2])
         KeyInfo = KeyInfo.decode()
-        if data_constants_document['InvoiceTypeCode'] in ('01','03'): # Factura
+        if data_constants_document['InvoiceTypeCode'] in ('01','03', '02'): # Factura
             xmlns = 'xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
             KeyInfo = KeyInfo.replace('xmlns:ds="http://www.w3.org/2000/09/xmldsig#"', '%s' % xmlns )
         if data_constants_document['InvoiceTypeCode'] == '91': # Nota de crédito
@@ -902,7 +902,7 @@ class DianDocument(models.Model):
         SignedProperties = etree.fromstring(SignedProperties)
         SignedProperties = etree.tostring(SignedProperties[0])
         SignedProperties = SignedProperties.decode()
-        if data_constants_document['InvoiceTypeCode'] in ('01','03'):
+        if data_constants_document['InvoiceTypeCode'] in ('01','03', '02'):
             xmlns = 'xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" xmlns:xades141="http://uri.etsi.org/01903/v1.4.1#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
             SignedProperties = SignedProperties.replace('xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" xmlns:xades141="http://uri.etsi.org/01903/v1.4.1#" xmlns:ds="http://www.w3.org/2000/09/xmldsig#"', '%s' % xmlns )
         if data_constants_document['InvoiceTypeCode'] == '91':
@@ -917,7 +917,7 @@ class DianDocument(models.Model):
         Signedinfo = etree.fromstring(data_xml_signature)
         Signedinfo = etree.tostring(Signedinfo[0])
         Signedinfo = Signedinfo.decode()
-        if data_constants_document['InvoiceTypeCode'] in ('01','03'):
+        if data_constants_document['InvoiceTypeCode'] in ('01','03', '02'):
             xmlns = 'xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:sts="http://www.dian.gov.co/contratos/facturaelectronica/v1/Structures" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
             Signedinfo = Signedinfo.replace('xmlns:ds="http://www.w3.org/2000/09/xmldsig#"', '%s' % xmlns )
         if data_constants_document['InvoiceTypeCode'] == '91':
@@ -950,8 +950,16 @@ class DianDocument(models.Model):
                                                 company.software_pin,data_header_doc.number)            # Código de seguridad del software: (hashlib.new('sha384', str(self.company_id.software_id) + str(self.company_id.software_pin)))
         dian_constants['PINSoftware'] = company.software_pin
         dian_constants['SeedCode'] = company.seed_code
-        dian_constants['UBLVersionID'] = 'UBL 2.1'                                                      # Versión base de UBL usada. Debe marcar UBL 2.0
-        dian_constants['ProfileID'] = 'DIAN 2.1'                                                        # Versión del Formato: Indicar versión del documento. Debe usarse "DIAN 1.0"
+        dian_constants['UBLVersionID'] = 'UBL 2.1'  # Versión base de UBL usada. Debe marcar UBL 2.0
+        if data_header_doc.type == 'out_invoice':
+            dian_constants['ProfileID'] = 'DIAN 2.1: Factura Electrónica de Venta'
+        elif data_header_doc.is_debit_note:
+            dian_constants['ProfileID'] = 'DIAN 2.1: Nota Débito de Factura Electrónica de Venta'
+        else:
+            dian_constants['ProfileID'] = 'DIAN 2.1: Nota Crédito de Factura Electrónica de Venta'
+
+
+        # Versión del Formato: Indicar versión del documento. Debe usarse "DIAN 1.0"
         dian_constants['CustomizationID'] = company.operation_type  
         dian_constants['ProfileExecutionID'] = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']                                                       # 1 = produccción 2 = prueba
         dian_constants['SupplierAdditionalAccountID'] = '1' if partner.is_company else '2'              # Persona natural o jurídica (persona natural, jurídica, gran contribuyente, otros)
@@ -2110,7 +2118,12 @@ class DianDocument(models.Model):
             'CurrencyID' : dcd['CurrencyID'],
             'SchemeIDAdquiriente' : dcd['SchemeIDAdquiriente'],
             'SchemeNameAdquiriente' : dcd['SchemeNameAdquiriente'],
-            'IDAdquiriente' : dcd['IDAdquiriente']            }
+            'IDAdquiriente' : dcd['IDAdquiriente'],
+            'ResponseCode' : dcd['ResponseCodeCreditNote'],
+            'Descripcion': dcd['DescriptionDebitCreditNote'],
+            'SupplierCityNameSubentity': dc['SupplierCityNameSubentity'],
+            'DeliveryAddress': dc['DeliveryAddress'],
+            }
         return template_basic_data_nc_xml
 
  
@@ -2140,6 +2153,12 @@ class DianDocument(models.Model):
             <ext:ExtensionContent></ext:ExtensionContent>
         </ext:UBLExtension>
     </ext:UBLExtensions>
+    
+    <cbc:DiscrepancyResponse>
+        <cbc:ResponseCode>%(ResponseCodeDebitNote)s</cbc:ResponseCode>
+        <cbc:Description>%(DescriptionDebitNote)s</cbc:Description>        
+    </cbc:DiscrepancyResponse>
+    
     <cbc:UBLVersionID>%(UBLVersionID)s</cbc:UBLVersionID>
     <cbc:CustomizationID>%(CustomizationID)s</cbc:CustomizationID>
     <cbc:ProfileID>%(ProfileID)s</cbc:ProfileID>
@@ -2282,6 +2301,7 @@ class DianDocument(models.Model):
        <cbc:TaxInclusiveAmount currencyID="%(CurrencyID)s">%(TotalTaxInclusiveAmount)s</cbc:TaxInclusiveAmount>
        <cbc:PayableAmount currencyID="%(CurrencyID)s">%(PayableAmount)s</cbc:PayableAmount>
     </cac:RequestedMonetaryTotal>%(data_debit_lines_xml)s
+   
 </DebitNote>"""
         return template_basic_data_nd_xml
 
@@ -2352,7 +2372,11 @@ class DianDocument(models.Model):
             'CurrencyID' : dcd['CurrencyID'],
             'SchemeIDAdquiriente' : dcd['SchemeIDAdquiriente'],
             'SchemeNameAdquiriente' : dcd['SchemeNameAdquiriente'],
-            'IDAdquiriente' : dcd['IDAdquiriente']
+            'IDAdquiriente' : dcd['IDAdquiriente'],
+            'ResponseCode': dcd['ResponseCodeDebitNote'],
+            'Description': dcd['DescriptionDebitCreditNote'],
+            'SupplierCityNameSubentity': dc['SupplierCityNameSubentity'],
+            'DeliveryAddress': dc['DeliveryAddress'],
             }
         return template_basic_data_nd_xml
 
@@ -2371,8 +2395,7 @@ class DianDocument(models.Model):
                     <cbc:Name>%(TaxTotalName)s</cbc:Name>
                 </cac:TaxScheme>
             </cac:TaxCategory>
-        </cac:TaxSubtotal>
-    </cac:TaxTotal>"""
+        </cac:TaxSubtotal>"""
         return template_tax_data_xml
 
     def _template_line_data_information_content_provider_party_xml(self):
@@ -2396,6 +2419,7 @@ class DianDocument(models.Model):
         <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(ILLineExtensionAmount)s</cbc:LineExtensionAmount>
         <cbc:FreeOfChargeIndicator>false</cbc:FreeOfChargeIndicator>
         <cac:TaxTotal>
+           
            <cbc:TaxAmount currencyID="%(CurrencyID)s">%(ILTaxAmount)s</cbc:TaxAmount>%(InvoiceLineTaxSubtotal)s
         </cac:TaxTotal>
         <cac:Item>
@@ -2407,7 +2431,7 @@ class DianDocument(models.Model):
         </cac:Item>
         <cac:Price>
             <cbc:PriceAmount currencyID="%(CurrencyID)s">%(ILPriceAmount)s</cbc:PriceAmount>
-            <cbc:BaseQuantity unitCode="NIU">1.000000</cbc:BaseQuantity>
+            <cbc:BaseQuantity unitCode="NIU">1.0000</cbc:BaseQuantity>
         </cac:Price>
     </cac:InvoiceLine>""" 
         return template_line_data_xml
@@ -2437,6 +2461,7 @@ class DianDocument(models.Model):
         <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(ILLineExtensionAmount)s</cbc:LineExtensionAmount>
         <cbc:FreeOfChargeIndicator>false</cbc:FreeOfChargeIndicator>
         <cac:TaxTotal>
+           
            <cbc:TaxAmount currencyID="%(CurrencyID)s">%(ILTaxAmount)s</cbc:TaxAmount>
            <cac:TaxSubtotal>
               <cbc:TaxableAmount currencyID="%(CurrencyID)s">%(ILTaxableAmount)s</cbc:TaxableAmount>
@@ -2459,7 +2484,7 @@ class DianDocument(models.Model):
         </cac:Item>
         <cac:Price>
             <cbc:PriceAmount currencyID="%(CurrencyID)s">%(ILPriceAmount)s</cbc:PriceAmount>
-            <cbc:BaseQuantity unitCode="NIU">1.000000</cbc:BaseQuantity>
+            <cbc:BaseQuantity unitCode="NIU">1.0000</cbc:BaseQuantity>
         </cac:Price>
     </cac:CreditNoteLine>""" 
         return template_credit_line_data_xml
@@ -2472,6 +2497,7 @@ class DianDocument(models.Model):
         <cbc:DebitedQuantity unitCode="EA">%(ILInvoicedQuantity)s</cbc:DebitedQuantity>
         <cbc:LineExtensionAmount currencyID="%(CurrencyID)s">%(ILLineExtensionAmount)s</cbc:LineExtensionAmount>
         <cac:TaxTotal>
+           
            <cbc:TaxAmount currencyID="%(CurrencyID)s">%(ILTaxAmount)s</cbc:TaxAmount>
            <cac:TaxSubtotal>
               <cbc:TaxableAmount currencyID="%(CurrencyID)s">%(ILTaxableAmount)s</cbc:TaxableAmount>
@@ -2494,7 +2520,7 @@ class DianDocument(models.Model):
         </cac:Item>
         <cac:Price>
             <cbc:PriceAmount currencyID="%(CurrencyID)s">%(ILPriceAmount)s</cbc:PriceAmount>
-            <cbc:BaseQuantity unitCode="NIU">1.000000</cbc:BaseQuantity>
+            <cbc:BaseQuantity unitCode="NIU">1.0000</cbc:BaseQuantity>
         </cac:Price>
     </cac:DebitNoteLine>""" 
         return template_debit_line_data_xml
@@ -2599,16 +2625,21 @@ class DianDocument(models.Model):
     def _get_taxs_data(self, invoice_id):
         dic_taxs_data = {}
         company = self.env.user.company_id
-        partner = company.partner_id 
+        partner = company.partner_id
+        iva_lines = 1
+        ret_lines = 1
         iva_01 = 0.00
         ica_03 = 0.00
-        inc_04 = 0.00 
+        inc_04 = 0.00
+        ret_06 = 0.00
         tax_percentage_iva_01 = 0.00
         tax_percentage_ica_03 = 0.00
-        tax_percentage_inc_04 = 0.00 
+        tax_percentage_inc_04 = 0.00
+        tax_percentage_ret_06 = 0.00
         total_base_iva_01 = 0.00
         total_base_ica_03 = 0.00
-        total_base_inc_04 = 0.00 
+        total_base_inc_04 = 0.00
+        total_base_ret_06 = 0.00
         data_tax_detail_doc = self.env['account.invoice.tax'].search([('invoice_id', '=', invoice_id)])
 
         if data_tax_detail_doc:
@@ -2616,14 +2647,20 @@ class DianDocument(models.Model):
                 iva_01 += item_tax.amount if item_tax.tax_id.tax_group_fe == 'iva_fe' else 0.0
                 ica_03 += item_tax.amount if item_tax.tax_id.tax_group_fe == 'ica_fe' else 0.0
                 inc_04 += item_tax.amount if item_tax.tax_id.tax_group_fe == 'ico_fe' else 0.0 # Mod impuesto
+                ret_06 = item_tax.amount if item_tax.tax_id.tax_group_fe == 'ret_fe' else 0.0  # Mod impuesto
+
                 tax_percentage_iva_01 = self.env['account.tax'].search([('id', '=', item_tax.tax_id.id)]).amount if item_tax.tax_id.tax_group_fe  == 'iva_fe' else tax_percentage_iva_01
                 tax_percentage_ica_03 = self.env['account.tax'].search([('id', '=', item_tax.tax_id.id)]).amount if item_tax.tax_id.tax_group_fe  == 'ica_fe' else tax_percentage_ica_03
                 tax_percentage_inc_04 = self.env['account.tax'].search([('id', '=', item_tax.tax_id.id)]).amount if item_tax.tax_id.tax_group_fe  == 'ico_fe' else tax_percentage_inc_04 # Mod impuesto
+                tax_percentage_ret_06 = self.env['account.tax'].search([('id', '=',item_tax.tax_id.id)]).amount if item_tax.tax_id.tax_group_fe == 'ret_fe' else tax_percentage_ret_06
+
                 invoice_lines = self.env['account.invoice.line'].search([('invoice_id', '=', invoice_id), ('invoice_line_tax_ids', 'in', item_tax.tax_id.id)])
                 for invoice_line in invoice_lines:
                     total_base_iva_01 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_fe  == 'iva_fe' else 0
                     total_base_ica_03 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_fe  == 'ica_fe' else 0
                     total_base_inc_04 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_fe  == 'ico_fe' else 0 # Mod impuesto
+                    total_base_ret_06 += invoice_line.price_subtotal if item_tax.tax_id.tax_group_fe == 'ret_fe' else 0
+
                 if iva_01 != 0.00 and total_base_iva_01 == 0.00 and item_tax.tax_id.tax_group_fe == 'iva_fe':
                     total_base_iva_01 = item_tax.invoice_id.amount_untaxed
                 if ica_03 != 0.00 and total_base_ica_03 == 0.00 and item_tax.tax_id.tax_group_fe == 'ica_fe':
@@ -2631,10 +2668,24 @@ class DianDocument(models.Model):
                 if inc_04 != 0.00 and total_base_inc_04 == 0.00 and item_tax.tax_id.tax_group_fe == 'ico_fe':
                     total_base_inc_04 = item_tax.invoice_id.amount_untaxed
 
-        dic_taxs_data['iva_01'] = self._complements_second_decimal_total(iva_01)
-        dic_taxs_data['tax_percentage_iva_01'] = self._complements_second_decimal_total(tax_percentage_iva_01)
-        dic_taxs_data['total_base_iva_01'] = self._complements_second_decimal_total(total_base_iva_01)
-        
+                if ret_06 != 0.00 and total_base_ret_06 == 0.00 and item_tax.tax_id.tax_group_fe == 'ret_fe':
+                    total_base_ret_06 = item_tax.invoice_id.amount_untaxed
+
+                if iva_01 and item_tax.tax_id.tributes == '01':
+                    dic_taxs_data['iva_' + str(iva_lines)] = self._complements_second_decimal_total(item_tax.amount_total)
+                    dic_taxs_data['tax_percentage_iva_' + str(iva_lines)] = self._complements_second_decimal_total(item_tax.tax_id.amount)
+                    dic_taxs_data['total_base_iva_' + str(iva_lines)] = self._complements_second_decimal_total(item_tax.base)
+                    iva_lines += 1
+
+                if ret_06:
+                    dic_taxs_data['ret_' + str(ret_lines)] = self._complements_second_decimal_total(ret_06 * -1)
+                    dic_taxs_data['tax_percentage_ret_' + str(ret_lines)] = self._complements_second_decimal_total(tax_percentage_ret_06 * -1)
+                    dic_taxs_data['total_base_ret_' + str(ret_lines)] = self._complements_second_decimal_total(total_base_ret_06)
+                    ret_lines += 1
+
+        dic_taxs_data['iva_lines'] = iva_lines - 1
+        dic_taxs_data['ret_lines'] = ret_lines - 1
+
         dic_taxs_data['ica_03'] = self._complements_second_decimal_total(ica_03 if ica_03 >= 0.00 else ica_03 * -1.00)
         dic_taxs_data['tax_percentage_ica_03'] = self._complements_second_decimal_total(tax_percentage_ica_03 if tax_percentage_ica_03 >= 0.00 else tax_percentage_ica_03 * -1.00)
         dic_taxs_data['total_base_ica_03'] = self._complements_second_decimal_total(total_base_ica_03 if total_base_ica_03 >= 0.00 else total_base_ica_03 * -1.00)
@@ -2647,58 +2698,158 @@ class DianDocument(models.Model):
 
 
     @api.model
-    def _generate_taxs_data_xml(self, template_tax_data_xml, data_taxs, CurrencyID):
+    def _generate_taxs_data_xml(self, template_tax_data_xml, data_taxs, CurrencyID, document_type):
         data_tax_xml = ''
         # iva_01
-        if data_taxs['iva_01'] != '0.00':
-            TaxTotalTaxAmount = str(data_taxs['iva_01'])                                            # Importe Impuesto (detalle): Importe del impuesto retenido
-            TaxTotalTaxEvidenceIndicator = 'false' if data_taxs['iva_01'] == 0.00 else 'true'       # Indica que el elemento es un Impuesto retenido (7.1.1) y no un impuesto (8.1.1) True
-            TaxTotalTaxableAmount = str(data_taxs['total_base_iva_01'])                             # 7.1.1.1 / 8.1.1.1 - Base Imponible: Base Imponible sobre la que se calcula la retención de impuesto
-            TaxTotalPercent = str(data_taxs['tax_percentage_iva_01'])                               # 7.1.1.3 / 8.1.1.3 - Porcentaje: Porcentaje a aplicar
-            TaxTotalTaxSchemeID = '01'                                                              # 7.1.1.2 - Tipo: Tipo o clase impuesto. Concepto fiscal por el que se tributa. Debería si un campo que referencia a una lista de códigos. En la lista deberían aparecer los impuestos estatales o nacionales. Código de impuesto
-            TaxTotalName = 'IVA'
-            data_tax_xml += template_tax_data_xml % {'TaxTotalTaxAmount' : TaxTotalTaxAmount,
-                                                    #'TaxTotalTaxEvidenceIndicator' : TaxTotalTaxEvidenceIndicator,
-                                                    'TaxTotalTaxableAmount' : TaxTotalTaxableAmount,
-                                                    'TaxTotalPercent' : TaxTotalPercent,
-                                                    'TaxTotalName' : TaxTotalName,
-                                                    'TaxTotalTaxSchemeID' : TaxTotalTaxSchemeID,
-                                                    'CurrencyID' : CurrencyID
-                                                    }
+        SumTaxTotalTaxAmount = 0
+        TaxRoundingAmount = 0
+        for iva_line in range(data_taxs.get('iva_lines', 1)):
+            iva_line_str = str(iva_line + 1)
+            if data_taxs['iva_' + iva_line_str] != '0.00':
+                SumTaxTotalTaxAmount += float(
+                    data_taxs['iva_' + iva_line_str])  # Importe Impuesto (detalle): Importe del impuesto retenido
+                TaxTotalTaxAmount = str(data_taxs['iva_' + iva_line_str])
+                TaxTotalTaxEvidenceIndicator = 'false' if data_taxs[
+                                                              'iva_' + iva_line_str] == 0.00 else 'true'  # Indica que el elemento es un Impuesto retenido (7.1.1) y no un impuesto (8.1.1) True
+                TaxTotalTaxableAmount = str(data_taxs[
+                                                'total_base_iva_' + iva_line_str])  # 7.1.1.1 / 8.1.1.1 - Base Imponible: Base Imponible sobre la que se calcula la retención de impuesto
+                TaxTotalPercent = str(data_taxs[
+                                          'tax_percentage_iva_' + iva_line_str])  # 7.1.1.3 / 8.1.1.3 - Porcentaje: Porcentaje a aplicar
+                TaxTotalTaxSchemeID = '01'  # 7.1.1.2 - Tipo: Tipo o clase impuesto. Concepto fiscal por el que se tributa. Debería si un campo que referencia a una lista de códigos. En la lista deberían aparecer los impuestos estatales o nacionales. Código de impuesto
+                TaxTotalName = 'IVA'
+
+                imp_2 = float(data_taxs['total_base_iva_' + iva_line_str])
+                imp_6 = float(data_taxs['tax_percentage_iva_' + iva_line_str])
+                imp_4 = imp_2 * imp_6 / 100
+                imp_6_imp_2 = (imp_2 * imp_6) / 100
+                TaxRoundingAmount += imp_6_imp_2 - imp_4
+
+                data_tax_xml += template_tax_data_xml % {'TaxTotalTaxAmount': TaxTotalTaxAmount,
+                                                         # 'TaxTotalTaxEvidenceIndicator' : TaxTotalTaxEvidenceIndicator,
+                                                         'TaxTotalTaxableAmount': TaxTotalTaxableAmount,
+                                                         'TaxTotalPercent': TaxTotalPercent,
+                                                         'TaxTotalName': TaxTotalName,
+                                                         'TaxTotalTaxSchemeID': TaxTotalTaxSchemeID,
+                                                         'CurrencyID': CurrencyID
+                                                         }
+
+        if SumTaxTotalTaxAmount:
+            data_tax_xml = """
+            <cac:TaxTotal>
+                
+                <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
+                %(Taxes)s
+            </cac:TaxTotal>
+            """ % {
+                'TaxRoundingAmount': self._complements_second_decimal_total(TaxRoundingAmount),
+                'TaxTotalTaxAmount': str(SumTaxTotalTaxAmount),
+                'CurrencyID': CurrencyID,
+                'Taxes': data_tax_xml
+            }
+
+        # Solo si es factura normal se coloca en la estructura WithholdingTaxTotal
+        if document_type != 'f':
+            return data_tax_xml
 
         # ica_03
         if data_taxs['ica_03'] != '0.00':
-            TaxTotalTaxAmount = str(data_taxs['ica_03'])                                         # Importe Impuesto (detalle): Importe del impuesto retenido
-            TaxTotalTaxEvidenceIndicator = 'false' if data_taxs['ica_03'] == 0.00 else 'true'    # Indica que el elemento es un Impuesto retenido (7.1.1) y no un impuesto (8.1.1) True
-            TaxTotalTaxableAmount = str(data_taxs['total_base_ica_03'])                          # 7.1.1.1 / 8.1.1.1 - Base Imponible: Base Imponible sobre la que se calcula la retención de impuesto
-            TaxTotalPercent = str(data_taxs['tax_percentage_ica_03'])                            # 7.1.1.3 / 8.1.1.3 - Porcentaje: Porcentaje a aplicar
+            TaxTotalTaxAmount = str(data_taxs['ica_03'])  # Importe Impuesto (detalle): Importe del impuesto retenido
+            TaxTotalTaxEvidenceIndicator = 'false' if data_taxs[
+                                                          'ica_03'] == 0.00 else 'true'  # Indica que el elemento es un Impuesto retenido (7.1.1) y no un impuesto (8.1.1) True
+            TaxTotalTaxableAmount = str(data_taxs[
+                                            'total_base_ica_03'])  # 7.1.1.1 / 8.1.1.1 - Base Imponible: Base Imponible sobre la que se calcula la retención de impuesto
+            TaxTotalPercent = str(
+                data_taxs['tax_percentage_ica_03'])  # 7.1.1.3 / 8.1.1.3 - Porcentaje: Porcentaje a aplicar
             TaxTotalTaxSchemeID = '03'
-            TaxTotalName = 'ICA'                                                                 # 7.1.1.2 - Tipo: Tipo o clase impuesto. Concepto fiscal por el que se tributa. Debería si un campo que referencia a una lista de códigos. En la lista deberían aparecer los impuestos estatales o nacionales. Código de impuesto
-            data_tax_xml += template_tax_data_xml % {'TaxTotalTaxAmount' : TaxTotalTaxAmount,
-                                                    #'TaxTotalTaxEvidenceIndicator' : TaxTotalTaxEvidenceIndicator,
-                                                    'TaxTotalTaxableAmount' : TaxTotalTaxableAmount,
-                                                    'TaxTotalPercent' : TaxTotalPercent,
-                                                    'TaxTotalName' : TaxTotalName,
-                                                    'TaxTotalTaxSchemeID' : TaxTotalTaxSchemeID,
-                                                    'CurrencyID' : CurrencyID
-                                                    }
-        
+            TaxTotalName = 'ICA'  # 7.1.1.2 - Tipo: Tipo o clase impuesto. Concepto fiscal por el que se tributa. Debería si un campo que referencia a una lista de códigos. En la lista deberían aparecer los impuestos estatales o nacionales. Código de impuesto
+            data_tax_xml_ica = template_tax_data_xml % {'TaxTotalTaxAmount': TaxTotalTaxAmount,
+                                                        # 'TaxTotalTaxEvidenceIndicator' : TaxTotalTaxEvidenceIndicator,
+                                                        'TaxTotalTaxableAmount': TaxTotalTaxableAmount,
+                                                        'TaxTotalPercent': TaxTotalPercent,
+                                                        'TaxTotalName': TaxTotalName,
+                                                        'TaxTotalTaxSchemeID': TaxTotalTaxSchemeID,
+                                                        'CurrencyID': CurrencyID
+                                                        }
+            data_tax_xml += """
+                        <cac:WithholdingTaxTotal>
+                            <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
+                            %(Taxes)s
+                        </cac:WithholdingTaxTotal>
+                        """ % {
+                'TaxTotalTaxAmount': str(TaxTotalTaxAmount),
+                'CurrencyID': CurrencyID,
+                'Taxes': data_tax_xml_ica
+            }
+
         # inc_04
         if data_taxs['inc_04'] != '0.00':
-            TaxTotalTaxAmount = str(data_taxs['inc_04'])                                         # Importe Impuesto (detalle): Importe del impuesto retenido
-            TaxTotalTaxEvidenceIndicator = 'false' if data_taxs['inc_04'] == 0.00 else 'true'    # Indica que el elemento es un Impuesto retenido (7.1.1) y no un impuesto (8.1.1) True
-            TaxTotalTaxableAmount = str(data_taxs['total_base_inc_04'])                          # 7.1.1.1 / 8.1.1.1 - Base Imponible: Base Imponible sobre la que se calcula la retención de impuesto
-            TaxTotalPercent = str(data_taxs['tax_percentage_inc_04'])                            # 7.1.1.3 / 8.1.1.3 - Porcentaje: Porcentaje a aplicar
+            TaxTotalTaxAmount = str(data_taxs['inc_04'])  # Importe Impuesto (detalle): Importe del impuesto retenido
+            TaxTotalTaxEvidenceIndicator = 'false' if data_taxs[
+                                                          'inc_04'] == 0.00 else 'true'  # Indica que el elemento es un Impuesto retenido (7.1.1) y no un impuesto (8.1.1) True
+            TaxTotalTaxableAmount = str(data_taxs[
+                                            'total_base_inc_04'])  # 7.1.1.1 / 8.1.1.1 - Base Imponible: Base Imponible sobre la que se calcula la retención de impuesto
+            TaxTotalPercent = str(
+                data_taxs['tax_percentage_inc_04'])  # 7.1.1.3 / 8.1.1.3 - Porcentaje: Porcentaje a aplicar
             TaxTotalTaxSchemeID = '04'
-            TaxTotalName = 'INC'                                                                 # 7.1.1.2 - Tipo: Tipo o clase impuesto. Concepto fiscal por el que se tributa. Debería si un campo que referencia a una lista de códigos. En la lista deberían aparecer los impuestos estatales o nacionales. Código de impuesto
-            data_tax_xml += template_tax_data_xml % {'TaxTotalTaxAmount' : TaxTotalTaxAmount,
-                                                    #'TaxTotalTaxEvidenceIndicator' : TaxTotalTaxEvidenceIndicator,
-                                                    'TaxTotalTaxableAmount' : TaxTotalTaxableAmount,
-                                                    'TaxTotalPercent' : TaxTotalPercent,
-                                                    'TaxTotalName' : TaxTotalName,
-                                                    'TaxTotalTaxSchemeID' : TaxTotalTaxSchemeID,
-                                                    'CurrencyID' : CurrencyID
-                                                    }
+            TaxTotalName = 'INC'  # 7.1.1.2 - Tipo: Tipo o clase impuesto. Concepto fiscal por el que se tributa. Debería si un campo que referencia a una lista de códigos. En la lista deberían aparecer los impuestos estatales o nacionales. Código de impuesto
+            data_tax_xml_inc = template_tax_data_xml % {'TaxTotalTaxAmount': TaxTotalTaxAmount,
+                                                        # 'TaxTotalTaxEvidenceIndicator' : TaxTotalTaxEvidenceIndicator,
+                                                        'TaxTotalTaxableAmount': TaxTotalTaxableAmount,
+                                                        'TaxTotalPercent': TaxTotalPercent,
+                                                        'TaxTotalName': TaxTotalName,
+                                                        'TaxTotalTaxSchemeID': TaxTotalTaxSchemeID,
+                                                        'CurrencyID': CurrencyID
+                                                        }
+
+            data_tax_xml += """
+                    <cac:WithholdingTaxTotal>
+                        <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
+                        %(Taxes)s
+                    </cac:WithholdingTaxTotal>
+                                    """ % {
+                'TaxTotalTaxAmount': str(TaxTotalTaxAmount),
+                'CurrencyID': CurrencyID,
+                'Taxes': data_tax_xml_inc
+            }
+
+        # ret_06
+        data_tax_xml_ret = ''
+        SumTaxTotalTaxAmount = 0
+        for ret_line in range(data_taxs.get('ret_lines', 1)):
+            ret_line_str = str(ret_line + 1)
+            if data_taxs['ret_' + ret_line_str] != '0.00':
+                SumTaxTotalTaxAmount += float(
+                    data_taxs['ret_' + ret_line_str])  # Importe Impuesto (detalle): Importe del impuesto retenido
+                TaxTotalTaxAmount = str(data_taxs['ret_' + ret_line_str])
+                TaxTotalTaxEvidenceIndicator = 'false' if data_taxs[
+                                                              'ret_' + ret_line_str] == 0.00 else 'true'  # Indica que el elemento es un Impuesto retenido (7.1.1) y no un impuesto (8.1.1) True
+                TaxTotalTaxableAmount = str(data_taxs[
+                                                'total_base_ret_' + ret_line_str])  # 7.1.1.1 / 8.1.1.1 - Base Imponible: Base Imponible sobre la que se calcula la retención de impuesto
+                TaxTotalPercent = str(data_taxs[
+                                          'tax_percentage_ret_' + ret_line_str])  # 7.1.1.3 / 8.1.1.3 - Porcentaje: Porcentaje a aplicar
+                TaxTotalTaxSchemeID = '06'  # 7.1.1.2 - Tipo: Tipo o clase impuesto. Concepto fiscal por el que se tributa. Debería si un campo que referencia a una lista de códigos. En la lista deberían aparecer los impuestos estatales o nacionales. Código de impuesto
+                TaxTotalName = 'ReteRenta'
+                data_tax_xml_ret += template_tax_data_xml % {'TaxTotalTaxAmount': TaxTotalTaxAmount,
+                                                             # 'TaxTotalTaxEvidenceIndicator' : TaxTotalTaxEvidenceIndicator,
+                                                             'TaxTotalTaxableAmount': TaxTotalTaxableAmount,
+                                                             'TaxTotalPercent': TaxTotalPercent,
+                                                             'TaxTotalName': TaxTotalName,
+                                                             'TaxTotalTaxSchemeID': TaxTotalTaxSchemeID,
+                                                             'CurrencyID': CurrencyID
+                                                             }
+
+        if SumTaxTotalTaxAmount:
+            data_tax_xml += """
+            <cac:WithholdingTaxTotal>
+                <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
+                %(Taxes)s
+            </cac:WithholdingTaxTotal>
+            """ % {
+                'TaxTotalTaxAmount': self._complements_second_decimal_total(SumTaxTotalTaxAmount),
+                'CurrencyID': CurrencyID,
+                'Taxes': data_tax_xml_ret
+            }
+
         return data_tax_xml
 
 
@@ -2717,11 +2868,14 @@ class DianDocument(models.Model):
                 ILChargeIndicator = 'true'                                                          # Indica que el elemento es un Cargo (5.1.1) y no un descuento (4.1.1)
                 ILAmount =  self._complements_second_decimal_total(data_line.discount)                    # Valor Descuento: Importe total a descontar.
                 ILDescription = self._replace_character_especial(data_line.name)
-                ILPriceAmount = self._complements_second_decimal_total(data_line.price_unit)              # Precio Unitario   
+                ILPriceAmount = self._complements_second_decimal_total(data_line.price_unit)              # Precio Unitario
+                BrandName = self._replace_character_especial(data_line.product_id.brand_id.name if data_line.product_id.brand_id else '')
+                ModelName = self._replace_character_especial(data_line.product_id.model_id.name if data_line.product_id.model_id else '')
                
                 # Valor del tributo
                 ILTaxAmount = 0.00
                 InvoiceLineTaxSubtotal_xml = ''
+                TaxRoundingAmount = 0
                 for line_tax in data_line.invoice_line_tax_ids:
                     tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
                     #ILTaxAmount += data_line.price_subtotal * (tax.amount / 100.00)
@@ -2734,14 +2888,22 @@ class DianDocument(models.Model):
                     ILPercent  = self._complements_second_decimal_total(tax.amount)
                     ILID = tax.tributes              
                     ILName = tributes[tax.tributes]  
-                    # Nuevo ini 
+                    # Nuevo ini
+
+                    imp_2 = data_line.price_subtotal
+                    imp_6 = tax.amount
+                    imp_4 = imp_2 * imp_6 / 100
+                    imp_6_imp_2 = (imp_2 * imp_6) / 100
+                    TaxRoundingAmount += imp_6_imp_2 - imp_4
+
                     InvoiceLineTaxSubtotal_xml += template_InvoiceLineTaxSubtotal_xml % {
                                                             'ILTaxAmountSubtotal' : ILTaxAmountSubtotal,
                                                             'ILTaxableAmount' : ILTaxableAmount,
                                                             'ILPercent' : ILPercent,
                                                             'ILID' : ILID,
                                                             'ILName' : ILName,
-                                                            'CurrencyID' : CurrencyID                                                        
+                                                            'CurrencyID' : CurrencyID,
+
                                                             } 
                     # Nuevo fin 
                 ILTaxAmount = self._complements_second_decimal_total(ILTaxAmount)
@@ -2762,13 +2924,16 @@ class DianDocument(models.Model):
                                                         'ILLineExtensionAmount' : ILLineExtensionAmount, # Ojo descuentos mas recargos de la linea
                                                         'ILAmount' : ILAmount,
                                                         'ILDescription' : ILDescription,
+                                                        'BrandName' : BrandName,
+                                                        'ModelName' : ModelName,
                                                         'ILPriceAmount' : ILPriceAmount,
                                                         'ILChargeIndicator' : ILChargeIndicator,
                                                         'ILTaxAmount' : ILTaxAmount,
                                                         'InvoiceLineTaxSubtotal' : InvoiceLineTaxSubtotal_xml,
                                                         'InformationContentProviderParty' : InformationContentProviderParty,
                                                         'CurrencyID' : CurrencyID,
-                                                        'ID_UNSPSC' : ID_UNSPSC                                                       
+                                                        'ID_UNSPSC' : ID_UNSPSC,
+                                                        'TaxRoundingAmount':  self._complements_second_decimal_total(TaxRoundingAmount)
                                                         }
         return data_line_xml
 
@@ -2787,7 +2952,11 @@ class DianDocument(models.Model):
             ILChargeIndicator = 'true'                                                          # Indica que el elemento es un Cargo (5.1.1) y no un descuento (4.1.1)
             ILAmount =  self._complements_second_decimal_total(data_line.discount)                    # Valor Descuento: Importe total a descontar.
             ILDescription = self._replace_character_especial(data_line.name)
-            ILPriceAmount = self._complements_second_decimal_total(data_line.price_unit)              # Precio Unitario   
+            ILPriceAmount = self._complements_second_decimal_total(data_line.price_unit)              # Precio Unitario
+            BrandName = self._replace_character_especial(
+                data_line.product_id.brand_id.name if data_line.product_id.brand_id else '')
+            ModelName = self._replace_character_especial(
+                data_line.product_id.model_id.name if data_line.product_id.model_id else '')
            
             # Valor del tributo
             ILTaxAmount = 0.00
@@ -2796,6 +2965,7 @@ class DianDocument(models.Model):
             ILID = ''           
             ILName = ''
             InvoiceLineTaxSubtotal_xml = ''
+            TaxRoundingAmount = 0
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
                 #ILTaxAmount = self._complements_second_decimal_total(data_line.price_subtotal * (tax.amount / 100.00))
@@ -2804,7 +2974,13 @@ class DianDocument(models.Model):
                 ILTaxableAmount = self._complements_second_decimal_total(data_line.price_subtotal)
                 ILPercent  = self._complements_second_decimal_total(tax.amount)
                 ILID = tax.tributes              
-                ILName = tributes[tax.tributes]  
+                ILName = tributes[tax.tributes]
+
+                imp_2 = data_line.price_subtotal
+                imp_6 = tax.amount
+                imp_4 = imp_2 * imp_6 / 100
+                imp_6_imp_2 = (imp_2 * imp_6) / 100
+                TaxRoundingAmount += imp_6_imp_2 - imp_4
 
             InformationContentProviderParty = ''
             if data_line.product_id.product_tmpl_id.operation_type == '11':
@@ -2822,6 +2998,8 @@ class DianDocument(models.Model):
                                                     'ILLineExtensionAmount' : ILLineExtensionAmount, # Ojo descuentos mas recargos de la linea
                                                     'ILAmount' : ILAmount,
                                                     'ILDescription' : ILDescription,
+                                                    'BrandName' : BrandName,
+                                                    'ModelName' : ModelName,
                                                     'ILPriceAmount' : ILPriceAmount,
                                                     'ILChargeIndicator' : ILChargeIndicator,
                                                     'ILTaxAmount' : ILTaxAmount,
@@ -2831,7 +3009,8 @@ class DianDocument(models.Model):
                                                     'ILName' : ILName,
                                                     'InformationContentProviderParty' : InformationContentProviderParty,
                                                     'CurrencyID' : CurrencyID,
-                                                    'ID_UNSPSC' : ID_UNSPSC   
+                                                    'ID_UNSPSC' : ID_UNSPSC,
+                                                    'TaxRoundingAmount': self._complements_second_decimal_total(TaxRoundingAmount)
                                                     }
         return data_credit_note_line_xml
 
@@ -2848,7 +3027,11 @@ class DianDocument(models.Model):
             ILChargeIndicator = 'true'                                                          # Indica que el elemento es un Cargo (5.1.1) y no un descuento (4.1.1)
             ILAmount =  self._complements_second_decimal_total(data_line.discount)                    # Valor Descuento: Importe total a descontar.
             ILDescription = self._replace_character_especial(data_line.name)
-            ILPriceAmount = self._complements_second_decimal_total(data_line.price_unit)              # Precio Unitario   
+            ILPriceAmount = self._complements_second_decimal_total(data_line.price_unit)              # Precio Unitario
+            BrandName = self._replace_character_especial(
+                data_line.product_id.brand_id.name if data_line.product_id.brand_id else '')
+            ModelName = self._replace_character_especial(
+                data_line.product_id.model_id.name if data_line.product_id.model_id else '')
            
             # Valor del tributo
             ILTaxAmount = 0.00
@@ -2857,6 +3040,7 @@ class DianDocument(models.Model):
             ILPercent  =  0.00
             ILID = ''           
             ILName = ''
+            TaxRoundingAmount = 0
             InvoiceLineTaxSubtotal_xml = ''
             for line_tax in data_line.invoice_line_tax_ids:
                 tax = self.env['account.tax'].search([('id', '=', line_tax.id)])
@@ -2866,7 +3050,13 @@ class DianDocument(models.Model):
                 ILTaxableAmount = self._complements_second_decimal_total(data_line.price_subtotal)
                 ILPercent  = self._complements_second_decimal_total(tax.amount)
                 ILID = tax.tributes              
-                ILName = tributes[tax.tributes]  
+                ILName = tributes[tax.tributes]
+
+                imp_2 = data_line.price_subtotal
+                imp_6 = tax.amount
+                imp_4 = imp_2 * imp_6 / 100
+                imp_6_imp_2 = (imp_2 * imp_6) / 100
+                TaxRoundingAmount += imp_6_imp_2 - imp_4
 
             InformationContentProviderParty = ''
             if data_line.product_id.product_tmpl_id.operation_type == '11':
@@ -2884,6 +3074,8 @@ class DianDocument(models.Model):
                                                     'ILLineExtensionAmount' : ILLineExtensionAmount, # Ojo descuentos mas recargos de la linea
                                                     'ILAmount' : ILAmount,
                                                     'ILDescription' : ILDescription,
+                                                    'BrandName' : BrandName,
+                                                    'ModelName' : ModelName,
                                                     'ILPriceAmount' : ILPriceAmount,
                                                     'ILChargeIndicator' : ILChargeIndicator,
                                                     'ILTaxAmount' : ILTaxAmount,
@@ -2893,7 +3085,9 @@ class DianDocument(models.Model):
                                                     'ILName' : ILName,
                                                     'InformationContentProviderParty' : InformationContentProviderParty,
                                                     'CurrencyID' : CurrencyID,
-                                                    'ID_UNSPSC' : ID_UNSPSC                                                    
+                                                    'ID_UNSPSC' : ID_UNSPSC,
+                                                                        'TaxRoundingAmount': self._complements_second_decimal_total(
+                                                                            TaxRoundingAmount)
                                                     }
 
 
@@ -2904,12 +3098,18 @@ class DianDocument(models.Model):
     def _generate_cufe(self, invoice_id, NumFac, FecFac, HoraFac, ValFac, NitOFE, TipAdq, NumAdq, ClTec, ValPag, 
         data_taxs, TipoAmbiente):
         ValFac = str(ValFac)
-        CodImp1 = '01' 
-        ValImp1 = str(data_taxs['iva_01'])
+        CodImp1 = '01'
+        ValImp1 = 0
+
+        for iva_line in range( data_taxs.get('iva_lines') ):
+            iva_line_str = str(iva_line + 1)
+            ValImp1 += float(data_taxs['iva_' + iva_line_str])
+
+        ValImp1 = str('{0:.2f}'.format(ValImp1))
         CodImp2 = '04'
-        ValImp2 = str(data_taxs['inc_04'])
+        ValImp2 = '0.00'
         CodImp3 = '03'
-        ValImp3 = str(data_taxs['ica_03'])
+        ValImp3 = '0.00'
         ValPag  = str(ValPag)
         TipAdq  = str(TipAdq)
         CUFE = NumFac+FecFac+HoraFac+ValFac+CodImp1+ValImp1+CodImp2+ValImp2+CodImp3+ValImp3+ValPag+NitOFE+NumAdq+ClTec+TipoAmbiente
@@ -2921,13 +3121,18 @@ class DianDocument(models.Model):
     @api.model
     def _generate_cude(self, invoice_id, NumFac, FecFac, HoraFac, ValFac, NitOFE, TipAdq, NumAdq, PINSoftware, ValPag, 
         data_taxs, TipoAmbiente):
-        ValFac = str(ValFac)
-        CodImp1 = '01' 
-        ValImp1 = str(data_taxs['iva_01'])
+        CodImp1 = '01'
+        ValImp1 = 0
+
+        for iva_line in range(data_taxs.get('iva_lines')):
+            iva_line_str = str(iva_line + 1)
+            ValImp1 += float(data_taxs['iva_' + iva_line_str])
+
+        ValImp1 = str('{0:.2f}'.format(ValImp1))
         CodImp2 = '04'
-        ValImp2 = str(data_taxs['inc_04'])
+        ValImp2 = '0.00'
         CodImp3 = '03'
-        ValImp3 = str(data_taxs['ica_03'])
+        ValImp3 = '0.00'
         ValPag  = str(ValPag)
         TipAdq  = str(TipAdq)
         CUDE = NumFac+FecFac+HoraFac+ValFac+CodImp1+ValImp1+CodImp2+ValImp2+CodImp3+ValImp3+ValPag+NitOFE+NumAdq+PINSoftware+TipoAmbiente
@@ -3060,6 +3265,8 @@ class DianDocument(models.Model):
     @api.model
     def _get_doctype(self, doctype, is_debit_note, in_contingency_4):  
         if doctype == 'out_invoice' and is_debit_note == False: # Es una factura
+            if self.document_id.partner_id.country_id.code != 'CO':
+                return '02'
             if self.contingency_3 == False and self.contingency_4 == False  and in_contingency_4 == False:
                 docdian = '01'
             elif self.contingency_3 == True and in_contingency_4 == False:
@@ -3191,7 +3398,7 @@ class DianDocument(models.Model):
         NitOFE = dian_constants['SupplierID']
         DocAdq = data_constants_document['CustomerID']
         ValFacIm = data_constants_document['PayableAmount']
-        ValIva = data_taxs['iva_01'] 
+        ValIva = data_taxs['iva_1'] if 'iva_1' in data_taxs else '0'
         ValOtroIm = data_taxs['inc_04'] + data_taxs['ica_03'] 
         ValTotFac = data_constants_document['TotalTaxInclusiveAmount']  
         datos_qr = ' NumFac: '+NumFac+' FecFac: '+FecFac+' HorFac: '+Time+' NitFac: '+NitOFE+' DocAdq: '+DocAdq+' ValFac: '+str(ValFac)+' ValIva: '+str(ValIva)+' ValOtroIm: '+str(ValOtroIm)+' ValTotFac: '+str(ValTotFac)+' CUFE: '+CUFE
@@ -3259,9 +3466,13 @@ class DianDocument(models.Model):
 
 
     def _complements_second_decimal_total(self, amount):
-        amount = str(int(amount)) + (str((amount - int(amount)))[1:4])
+        """amount = str(int(amount)) + (str((amount - int(amount)))[1:4])
         amount = self._complements_second_decimal(float(amount))
-        return amount
+        return amount"""
+        if amount:
+            return str('{0:.2f}'.format((amount)))
+        else:
+            return "0.00"
 
 
     def _template_SendTestSetAsyncsend_xml(self):
@@ -3857,3 +4068,140 @@ class DianDocument(models.Model):
         else:
             raise ValidationError("La divisa utilizada en la factura no tiene tasa de cambio registrada")
         return Calculationrate
+
+
+    def generate_attachment_document(self, invoice, dian_document):
+        #self.exist_dian( dian_document.id )
+        #'08828b44-2e44-4f62-b445-79b999947bfa'
+
+        '''self.exist_dian( dian_document.id )
+
+        headers = {'content-type': 'application/soap+xml'}
+        data_xml_send = """<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap‐envelope" xmlns:wcf="http:/wcf.dian.colombia">
+        <soap:Header><wsse:Security xmlns:wsse="http:/docs.oasis‐open.org/wss/2004/01/oasis‐200401‐wss‐wssecurity‐secext‐1.0.xsd" xmlns:wsu="http:/docs.oasis‐open.org/wss/2004/01/oasis‐200401‐wss‐
+        wssecurity‐utility‐1.0.xsd"/></soap:Header>
+        <soap:Body>
+        <wcf:GetStatus
+        <wcf:trackId>73e40b3a-35b3-4fdc-8d3d-560f045bd439</wcf:trackId>
+        </wcf:GetStatus>
+        </soap:Body>
+        </soap:Envelope>"""
+
+        parser = etree.XMLParser(remove_blank_text=True)
+        data_xml_send = etree.tostring(etree.XML(data_xml_send, parser=parser))
+        data_xml_send = data_xml_send.decode()
+
+        response = requests.post('https://vpfe.dian.gov.co/WcfDianCustomerServices.svc?wsdl', data=data_xml_send, headers=headers)'''
+
+
+        dian_constants = self._get_dian_constants(invoice)
+        xml = self.get_xml_template_attachment_document( )
+
+        data_constants_document = self._generate_data_constants_document(invoice, dian_constants, invoice.type,invoice.company_id.in_contingency_4)
+
+        now_utc = datetime.now(timezone('UTC'))
+        now_bogota = now_utc
+        issue_date = now_bogota.strftime("%Y-%m-%d")
+
+        dian_constants.update({
+            'AttachedDocumentID' : random.getrandbits(128),
+            'IssueDate' : issue_date,
+            'IssueTime' : self._get_time_colombia(),
+            'ParentDocumentID' : invoice.number,
+            'CustomerTaxLevelCode' : self._get_partner_fiscal_responsability_code(invoice.partner_id.id),
+            'SupplierTaxLevelCode' : self._get_partner_fiscal_responsability_code(invoice.company_id.partner_id.id),
+            'CustomerRegistrationName' : data_constants_document.get('CustomerRegistrationName'),
+            'CustomerShemeID' : data_constants_document.get('CustomerShemeID'),
+            'CustomerShemeName' : data_constants_document.get('CustomerShemeName'),
+            'CustomerShemeName' : data_constants_document.get('CustomerShemeName'),
+            'TaxSchemeID' : data_constants_document.get('TaxSchemeID'),
+            'TaxSchemeName' : data_constants_document.get('TaxSchemeName'),
+            'CustomerID' : data_constants_document.get('CustomerID'),
+            'InvoiceXML' : dian_document.xml_document,
+            'Cufe' : invoice.cufe
+        })
+
+        xml = xml % dian_constants
+
+        raise UserError(xml)
+
+
+    def get_xml_template_attachment_document(self):
+        # pag 43 muestra los diversos documentos
+        # pag 636
+        # 144 posiblemente donde esta la respuesta XmlBase64Bytes
+        res = """
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <AttachedDocument
+            xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2"
+            xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+            xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+            xmlns="urn:oasis:names:specification:ubl:schema:xsd:AttachedDocument-2">
+            <cbc:UBLVersionID>%(UBLVersionID)s</cbc:UBLVersionID>
+            <cbc:CustomizationID>Documentos adjuntos</cbc:CustomizationID>
+            <cbc:ProfileID>%(ProfileID)s</cbc:ProfileID>
+            <cbc:ProfileExecutionID>%(ProfileExecutionID)s</cbc:ProfileExecutionID>
+            <cbc:ID>%(AttachedDocumentID)s</cbc:ID>
+            <cbc:IssueDate>%(IssueDate)s</cbc:IssueDate>
+            <cbc:IssueTime>%(IssueTime)s</cbc:IssueTime>
+            <cbc:DocumentType>Contenedor de Factura Electrónica</cbc:DocumentType>
+            <cbc:ParentDocumentID>%(ParentDocumentID)s</cbc:ParentDocumentID>
+            <cac:SenderParty>
+                <cac:PartyTaxScheme>
+                    <cbc:RegistrationName>%(SupplierPartyName)s</cbc:RegistrationName>
+                    <cbc:CompanyID schemeAgencyID="195" schemeID="%(schemeID)s" schemeName="%(SupplierSchemeID)s">%(SupplierID)s</cbc:CompanyID>
+                    <cbc:TaxLevelCode listName="48">%(SupplierTaxLevelCode)s</cbc:TaxLevelCode>
+                    <cac:TaxScheme>
+                        <cbc:ID>%(TaxSchemeID)s</cbc:ID>
+                        <cbc:Name>%(TaxSchemeName)s</cbc:Name>
+                    </cac:TaxScheme>
+                </cac:PartyTaxScheme>
+            </cac:SenderParty>
+            <cac:ReceiverParty>
+                <cac:PartyTaxScheme>
+                    <cbc:RegistrationName>%(CustomerRegistrationName)s</cbc:RegistrationName>
+                    <cbc:CompanyID schemeAgencyID="195" schemeID="%(CustomerShemeID)s" schemeName="%(CustomerShemeName)s">%(CustomerID)s</cbc:CompanyID>
+                    <cbc:TaxLevelCode listName="48">%(CustomerTaxLevelCode)s</cbc:TaxLevelCode>
+                    <cac:TaxScheme>
+                        <cbc:ID>%(TaxSchemeID)s</cbc:ID>
+                        <cbc:Name>%(TaxSchemeName)s</cbc:Name>
+                    </cac:TaxScheme>
+                </cac:PartyTaxScheme>
+            </cac:ReceiverParty>
+            <cac:Attachment>
+                <cac:ExternalReference>
+                    <cbc:MimeCode>text/xml</cbc:MimeCode>
+                    <cbc:EncodingCode>UTF-8</cbc:EncodingCode>
+                    <cbc:Description>%(InvoiceXML)s</cbc:Description>
+                </cac:ExternalReference>
+            </cac:Attachment>
+            <cac:ParentDocumentLineReference>
+                <cbc:LineID>1</cbc:LineID>
+                <cac:DocumentReference>
+                    <cbc:ID>%(ParentDocumentID)s</cbc:ID>
+                    <cbc:UUID schemeName="CUFE-SHA384">%(Cufe)s</cbc:UUID>
+                    <cbc:IssueDate>2021-05-10</cbc:IssueDate>
+                    <cbc:DocumentType>ApplicationResponse</cbc:DocumentType>
+                    <cac:Attachment>
+                        <cac:ExternalReference>
+                            <cbc:MimeCode>text/xml</cbc:MimeCode>
+                            <cbc:EncodingCode>UTF-8</cbc:EncodingCode>
+                            <cbc:Description>
+                                <![CDATA[<?xml version="1.0" encoding="utf-8" standalone="no"?>]]>
+                            </cbc:Description>
+                        </cac:ExternalReference>
+                    </cac:Attachment>
+                    <cac:ResultOfVerification>
+                        <cbc:ValidatorID>Unidad Especial Dirección de Impuestos y Aduanas Nacionales</cbc:ValidatorID>
+                        <cbc:ValidationResultCode>02</cbc:ValidationResultCode>
+                        <cbc:ValidationDate>2021-05-10</cbc:ValidationDate>
+                        <cbc:ValidationTime>17:20:11-05:00</cbc:ValidationTime>
+                    </cac:ResultOfVerification>
+                </cac:DocumentReference>
+            </cac:ParentDocumentLineReference>
+        </AttachedDocument>                            
+        
+        """
+
+        return res
+

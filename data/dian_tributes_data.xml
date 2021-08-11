@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <data noupdate="1">
-        
+
         <record id="tribute_01" model="dian.tributes">
             <field name="code">01</field>
             <field name="name">IVA</field>
@@ -29,7 +29,7 @@
 
         <record id="tribute_06" model="dian.tributes">
             <field name="code">06</field>
-            <field name="name">ReteFuente</field>
+            <field name="name">ReteRenta</field>
         </record>
 
         <record id="tribute_07" model="dian.tributes">
@@ -39,7 +39,7 @@
 
         <record id="tribute_08" model="dian.tributes">
             <field name="code">08</field>
-            <field name="name">ReteCREE</field>
+            <field name="name">IC Porcentual</field>
         </record>
 
         <record id="tribute_20" model="dian.tributes">
@@ -77,9 +77,9 @@
             <field name="name">Sordicom</field>
         </record>
 
-        <record id="tribute_ZY" model="dian.tributes">
-            <field name="code">ZY</field>
-            <field name="name">No causa</field>
+        <record id="tribute_30" model="dian.tributes">
+            <field name="code">30</field>
+            <field name="name">Impuesto al Consumo de Datos</field>
         </record>
 
         <record id="tribute_ZZ" model="dian.tributes">
@@ -87,10 +87,6 @@
             <field name="name">Nombre de la figura tributaria</field>
         </record>
 
-         <record id="tribute_000" model="dian.tributes">
-            <field name="code">000</field>
-            <field name="name">No Aplica</field>
-        </record>
 
     </data>
 </odoo>
