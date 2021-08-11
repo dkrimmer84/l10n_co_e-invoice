@@ -2383,8 +2383,6 @@ class DianDocument(models.Model):
 
     def _template_tax_data_xml(self):
         template_tax_data_xml = """
-    <cac:TaxTotal>
-        <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
         <cac:TaxSubtotal>
             <cbc:TaxableAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxableAmount)s</cbc:TaxableAmount>
             <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
@@ -3092,7 +3090,6 @@ class DianDocument(models.Model):
 
 
         return data_debit_note_line_xml
-
 
     @api.model
     def _generate_cufe(self, invoice_id, NumFac, FecFac, HoraFac, ValFac, NitOFE, TipAdq, NumAdq, ClTec, ValPag, 
