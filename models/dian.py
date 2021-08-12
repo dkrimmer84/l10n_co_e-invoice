@@ -2386,6 +2386,7 @@ class DianDocument(models.Model):
         <cac:TaxSubtotal>
             <cbc:TaxableAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxableAmount)s</cbc:TaxableAmount>
             <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
+            <cbc:Percent>%(TaxTotalPercent)s</cbc:Percent>
             <cac:TaxCategory>
                 <cbc:Percent>%(TaxTotalPercent)s</cbc:Percent>
                 <cac:TaxScheme>
