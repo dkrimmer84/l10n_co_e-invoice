@@ -2677,7 +2677,7 @@ class DianDocument(models.Model):
 
                 if ret_06:
                     dic_taxs_data['ret_' + str(ret_lines)] = self._complements_second_decimal_total(ret_06 * -1)
-                    dic_taxs_data['tax_percentage_ret_' + str(ret_lines)] = self._complements_second_decimal_total(tax_percentage_ret_06 * -1)
+                    dic_taxs_data['tax_percentage_ret_' + str(ret_lines)] = str(tax_percentage_ret_06 * -1)
                     dic_taxs_data['total_base_ret_' + str(ret_lines)] = self._complements_second_decimal_total(total_base_ret_06)
                     ret_lines += 1
 
