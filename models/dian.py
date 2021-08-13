@@ -2761,14 +2761,15 @@ class DianDocument(models.Model):
                 data_taxs['tax_percentage_ica_03'])  # 7.1.1.3 / 8.1.1.3 - Porcentaje: Porcentaje a aplicar
             TaxTotalTaxSchemeID = '03'
             TaxTotalName = 'ICA'  # 7.1.1.2 - Tipo: Tipo o clase impuesto. Concepto fiscal por el que se tributa. Debería si un campo que referencia a una lista de códigos. En la lista deberían aparecer los impuestos estatales o nacionales. Código de impuesto
-            data_tax_xml_ica = template_tax_data_xml % {'TaxTotalTaxAmount': TaxTotalTaxAmount,
-                                                        # 'TaxTotalTaxEvidenceIndicator' : TaxTotalTaxEvidenceIndicator,
-                                                        'TaxTotalTaxableAmount': TaxTotalTaxableAmount,
-                                                        'TaxTotalPercent': TaxTotalPercent,
-                                                        'TaxTotalName': TaxTotalName,
-                                                        'TaxTotalTaxSchemeID': TaxTotalTaxSchemeID,
-                                                        'CurrencyID': CurrencyID
-                                                        }
+            data_tax_xml_ica = template_tax_data_xml.replace('<cbc:Percent>%(TaxTotalPercent)s</cbc:Percent>', '') % {
+                'TaxTotalTaxAmount': TaxTotalTaxAmount,
+                # 'TaxTotalTaxEvidenceIndicator' : TaxTotalTaxEvidenceIndicator,
+                'TaxTotalTaxableAmount': TaxTotalTaxableAmount,
+                'TaxTotalPercent': TaxTotalPercent,
+                'TaxTotalName': TaxTotalName,
+                'TaxTotalTaxSchemeID': TaxTotalTaxSchemeID,
+                'CurrencyID': CurrencyID
+                }
             data_tax_xml += """
                         <cac:WithholdingTaxTotal>
                             <cbc:TaxAmount currencyID="%(CurrencyID)s">%(TaxTotalTaxAmount)s</cbc:TaxAmount>
