@@ -110,8 +110,16 @@
                     <attribute name="required">False</attribute>
                 </xpath>
 
+                <xpath expr="//page[@name='other_info']//field[@name='name']" position="attributes">
+                    <attribute name="attrs">{'required' : ['|', ('type', '=', 'out_refund'),('is_debit_note', '=', True)]}</attribute>
+                </xpath>
+
                 <xpath expr="//field[@name='date_due']" position="after">
                     <field name="mandante_id" />
+                </xpath>
+                <xpath expr="//field[@name='payment_term_id']" position="after">
+                    <field name="concepto_credit_note" attrs="{'required' : [('type', '=', 'out_refund')], 'invisible' : [('type', '!=', 'out_refund')]}" />
+                    <field name="concept_debit_note" attrs="{'required' : [('is_debit_note', '=', True)], 'invisible' : [('is_debit_note', '!=', True)]}" />
                 </xpath>
 
             </field>
