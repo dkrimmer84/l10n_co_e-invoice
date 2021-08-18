@@ -1007,7 +1007,10 @@ class DianDocument(models.Model):
         data_constants_document['InvoiceAuthorization'] = data_resolution['InvoiceAuthorization']                           # Número de resolución
         data_constants_document['StartDate'] = data_resolution['StartDate']                                                 # Fecha desde resolución
         data_constants_document['EndDate'] = data_resolution['EndDate']                                                     # Fecha hasta resolución
-        data_constants_document['Prefix'] = data_resolution['Prefix']                                                       # Prefijo de número de factura
+        data_constants_document['Prefix'] = data_resolution['Prefix']  # Prefijo de número de factura
+        if data_header_doc.type != 'out_invoice':
+            data_constants_document['Prefix'] = data_resolution['InvoiceID']
+
         data_constants_document['From'] = data_resolution['From']                                                           # Desde la secuencia
         data_constants_document['To'] = data_resolution['To']                                                               # Hasta la secuencia
         data_constants_document['InvoiceID'] = data_resolution['InvoiceID'] 
