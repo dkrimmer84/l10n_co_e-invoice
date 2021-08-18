@@ -2119,8 +2119,8 @@ class DianDocument(models.Model):
             'SchemeIDAdquiriente' : dcd['SchemeIDAdquiriente'],
             'SchemeNameAdquiriente' : dcd['SchemeNameAdquiriente'],
             'IDAdquiriente' : dcd['IDAdquiriente'],
-            'ResponseCode' : dcd['ResponseCodeCreditNote'],
-            'Descripcion': dcd['DescriptionDebitCreditNote'],
+            'ResponseCodeCreditNote': dcd['ResponseCodeCreditNote'],
+            'DescriptionCreditNote': dcd['DescriptionDebitCreditNote'],
             'SupplierCityNameSubentity': dc['SupplierCityNameSubentity'],
             'DeliveryAddress': dc['DeliveryAddress'],
             }
