@@ -206,6 +206,10 @@ class DianDocument(models.Model):
             dict_resolution_dian['InvoiceID'] = data_header_doc.number                              # Codigo del documento
             #13FEB dict_resolution_dian['ContingencyID'] = data_header_doc.contingency_invoice_number 
             dict_resolution_dian['ContingencyID'] = data_header_doc.number     # Número de fcatura de contingencia
+
+            if data_header_doc.journal_id.refund_sequence_id:
+                dict_resolution_dian['PrefixNC'] = data_header_doc.journal_id.refund_sequence_id.prefix
+
         else:
             raise ValidationError("El número de resolución DIAN asociada a la factura no existe")
         return dict_resolution_dian
@@ -1015,7 +1019,7 @@ class DianDocument(models.Model):
         data_constants_document['EndDate'] = data_resolution['EndDate']                                                     # Fecha hasta resolución
         data_constants_document['Prefix'] = data_resolution['Prefix']  # Prefijo de número de factura
         if data_header_doc.type != 'out_invoice':
-            data_constants_document['Prefix'] = data_resolution['InvoiceID']
+            data_constants_document['Prefix'] = data_resolution['PrefixNC']
 
         data_constants_document['From'] = data_resolution['From']                                                           # Desde la secuencia
         data_constants_document['To'] = data_resolution['To']                                                               # Hasta la secuencia
