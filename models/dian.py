@@ -960,7 +960,13 @@ class DianDocument(models.Model):
 
 
         # Versión del Formato: Indicar versión del documento. Debe usarse "DIAN 1.0"
-        dian_constants['CustomizationID'] = '20'
+        dian_constants['CustomizationID'] = company.operation_type
+        if data_header_doc.type == 'out_refund':
+            dian_constants['CustomizationID'] = '20'
+        if data_header_doc.is_debit_note:
+            dian_constants['CustomizationID'] = '30'
+
+
         dian_constants['ProfileExecutionID'] = tipo_ambiente['PRODUCCION'] if company.production else tipo_ambiente['PRUEBA']                                                       # 1 = produccción 2 = prueba
         dian_constants['SupplierAdditionalAccountID'] = '1' if partner.is_company else '2'              # Persona natural o jurídica (persona natural, jurídica, gran contribuyente, otros)
         dian_constants['SupplierID'] = partner.xidentification if partner.xidentification else ''       # Identificador fiscal: En Colombia, el NIT
