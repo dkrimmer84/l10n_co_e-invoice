@@ -1912,11 +1912,6 @@ class DianDocument(models.Model):
         </ext:UBLExtension>
     </ext:UBLExtensions>
     
-    <cbc:DiscrepancyResponse>
-        <cbc:ResponseCode>%(ResponseCodeCreditNote)s</cbc:ResponseCode>
-        <cbc:Description>%(DescriptionCreditNote)s</cbc:Description>        
-    </cbc:DiscrepancyResponse>
-    
     <cbc:UBLVersionID>%(UBLVersionID)s</cbc:UBLVersionID>
     <cbc:CustomizationID>%(CustomizationID)s</cbc:CustomizationID>
     <cbc:ProfileID>%(ProfileID)s</cbc:ProfileID>
@@ -2166,11 +2161,6 @@ class DianDocument(models.Model):
             <ext:ExtensionContent></ext:ExtensionContent>
         </ext:UBLExtension>
     </ext:UBLExtensions>
-    
-    <cbc:DiscrepancyResponse>
-        <cbc:ResponseCode>%(ResponseCodeDebitNote)s</cbc:ResponseCode>
-        <cbc:Description>%(DescriptionDebitNote)s</cbc:Description>        
-    </cbc:DiscrepancyResponse>
     
     <cbc:UBLVersionID>%(UBLVersionID)s</cbc:UBLVersionID>
     <cbc:CustomizationID>%(CustomizationID)s</cbc:CustomizationID>
