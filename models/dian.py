@@ -2487,7 +2487,7 @@ class DianDocument(models.Model):
         </cac:Item>
         <cac:Price>
             <cbc:PriceAmount currencyID="%(CurrencyID)s">%(ILPriceAmount)s</cbc:PriceAmount>
-            <cbc:BaseQuantity unitCode="NIU">1.0000</cbc:BaseQuantity>
+            <cbc:BaseQuantity unitCode="NIU">%(ILInvoicedQuantity)s</cbc:BaseQuantity>
         </cac:Price>
     </cac:CreditNoteLine>""" 
         return template_credit_line_data_xml
