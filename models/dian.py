@@ -461,7 +461,7 @@ class DianDocument(models.Model):
                 data_constants_document = self._generate_data_constants_document(data_header_doc, dian_constants, document_type, company.in_contingency_4)            
                 # Construye el documento XML para la factura sin firma
                 _logger.info('send_pending_dian|data_constants_document|InvoiceTypeCode|' + str(data_constants_document['InvoiceTypeCode']))
-                if data_constants_document['InvoiceTypeCode'] in ('01','04'):
+                if data_constants_document['InvoiceTypeCode'] in ('01','04', '02'):
                     # Genera líneas de detalle de los impuestos
                     data_taxs = self._get_taxs_data(data_header_doc.id)
                     data_taxs_xml = self._generate_taxs_data_xml(template_tax_data_xml, data_taxs, data_constants_document['CurrencyID'], document_type)
